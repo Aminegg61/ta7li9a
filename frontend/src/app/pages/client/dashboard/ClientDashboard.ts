@@ -117,23 +117,38 @@ import { AuthService } from '../../../services/auth';
               </div>
 
               <!-- Stats -->
-              <div class="grid grid-cols-2 gap-4 mb-6">
-            <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800">
-                <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">
-                  Queue Position
-                </p>
+<div class="grid grid-cols-2 gap-4 mb-6">
+                
+                <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800 flex flex-col justify-center">
+                  <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">
+                    Queue Position
+                  </p>
 
-                <p class="font-black text-xl text-yellow-500">
-                  #{{ barber.queuePosition || '' }}
-                  <span class="text-xs text-neutral-500 ml-1">
-                    {{ barber.inQueue ? 'in line' : 'not in queue' }}
-                  </span>
-                </p>
-            </div>
-                <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800">
+                  <div *ngIf="!barber.inQueue">
+                    <p class="font-black text-xl text-yellow-500">
+                      {{ barber.queuePosition }}
+                      <span class="text-[10px] text-neutral-500 ml-1 uppercase tracking-widest">waiting</span>
+                    </p>
+                  </div>
+
+                  <div *ngIf="barber.inQueue">
+                    <p *ngIf="barber.queuePosition === 0" class="font-black text-xl text-green-500 animate-pulse">
+                      NEXT
+                      <span class="text-[10px] text-green-500/70 ml-1 uppercase tracking-widest">in chair</span>
+                    </p>
+                    
+                    <p *ngIf="barber.queuePosition > 0" class="font-black text-xl text-yellow-500">
+                      {{ barber.queuePosition }}
+                      <span class="text-[10px] text-neutral-500 ml-1 uppercase tracking-widest">ahead of you</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800 flex flex-col justify-center">
                   <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">Est. Wait</p>
                   <p class="font-black text-xl text-yellow-500">{{ barber.estimatedWaitTime }} <span class="text-xs text-neutral-500 font-bold ml-1">min</span></p>
                 </div>
+
               </div>
 
 

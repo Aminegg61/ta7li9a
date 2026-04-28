@@ -142,7 +142,6 @@ public class ManageBarberService {
     }
 
     private QueueInfoDto calculateQueueInfo(Long barberId, Long clientId) {
-
         List<AppointmentStatus> statuses = List.of(
             AppointmentStatus.IN_PROGRESS,
             AppointmentStatus.WAITING
@@ -153,36 +152,39 @@ public class ManageBarberService {
 
         int totalMinutes = 0;
         int position = 0;
-        boolean found = false;
+        boolean inQueue = false;
 
         LocalDateTime now = LocalDateTime.now();
 
-        for (AppointmentEntity appointment : queue) {
+        for (int i = 0; i < queue.size(); i++) {
+            AppointmentEntity appointment = queue.get(i);
 
-            // ⛔ منين نلقاك، نحبسو position counting
-            if (!found) position++;
-
+            // ⛔ 1. Melli n-lqaw l-klyan, n-chedou r9mo u N-7BSSOU KOLCHI!
             if (appointment.getClient() != null && appointment.getClient().getId().equals(clientId)) {
-                found = true;
+                inQueue = true;
+                position = i; // 👈 7iyedna +1 bach t-3tik 0 ila knti nta l-lowel
+                break; 
             }
 
+            // ⏳ 2. Ila machi huwa, n-zidou weqt l-intidar
             if (appointment.getStatus() == AppointmentStatus.IN_PROGRESS) {
-
                 long remaining = Duration.between(now, appointment.getEndTime()).toMinutes();
-
                 if (remaining > 0) {
                     totalMinutes += remaining;
                 }
-
             } else {
-
                 int duration = appointment.getServices()
                         .stream()
                         .mapToInt(ServiceEntity::getDuration)
                         .sum();
-
                 totalMinutes += duration;
             }
+        }
+
+        // 3. Ila l-klyan baqi ma-chadch n-nouba (malqinahch), 
+        // L-Position dyalo ghat-koun hiya t-total dyal n-nas li f n-nouba + 1 (awla ghir size)
+        if (!inQueue) {
+            position = queue.size(); 
         }
 
         return new QueueInfoDto(totalMinutes, position);

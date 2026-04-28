@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajemi.barber.Ta7li9_app.dto.LoginResponse;
-import com.ajemi.barber.Ta7li9_app.dto.RegisterResponse;
 import com.ajemi.barber.Ta7li9_app.dto.RequestLogin;
 import com.ajemi.barber.Ta7li9_app.dto.RequestRegister;
 import com.ajemi.barber.Ta7li9_app.service.AuthService;
