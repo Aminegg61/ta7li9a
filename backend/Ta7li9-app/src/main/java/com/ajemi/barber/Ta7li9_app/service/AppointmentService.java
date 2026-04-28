@@ -17,6 +17,7 @@ import com.ajemi.barber.Ta7li9_app.dto.AppointmentRequestDTO;
 import com.ajemi.barber.Ta7li9_app.dto.AppointmentResponseDTO;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentEntity;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentStatus;
+import com.ajemi.barber.Ta7li9_app.entity.BarberStatus;
 import com.ajemi.barber.Ta7li9_app.entity.ServiceEntity;
 import com.ajemi.barber.Ta7li9_app.entity.User;
 import com.ajemi.barber.Ta7li9_app.repository.AppointmentRepository;
@@ -59,11 +60,11 @@ public class AppointmentService {
     @Transactional
     public AppointmentResponseDTO createAppointment(UserPrincipal currentUser, AppointmentRequestDTO dto) {
         Long currentUserId = currentUser.getId();
-        boolean isClient = currentUser.getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
-
+        // boolean isClient = currentUser.getAuthorities().stream()
+        //                     .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
+        boolean isCoiffeur = currentUser.isCoiffeur();
         // 1. Check Duplicate l l-Client (Zid PENDING l l-lista dyal l-verif)
-        if (isClient) {
+        if (!isCoiffeur) {
             boolean alreadyInQueue = appointmentRepository.existsByClientIdAndStatusIn(
                 currentUserId, 
                 List.of( AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
@@ -79,7 +80,7 @@ public class AppointmentService {
         String manualName = null;
 
         // --- Ta7did Roles ---
-        if (!isClient) { // Coiffeur Manual Add
+        if (isCoiffeur) { // Coiffeur Manual Add
             coiffeur = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Coiffeur not found"));
             if (dto.getClientId() != null) {
                 client = userRepository.findById(dto.getClientId()).orElse(null);
@@ -190,10 +191,19 @@ public class AppointmentService {
         return mapToResponseDTO(saved);
     }
     @Transactional
-    public void rejectAppointment(Long appointmentId) {
+    public void rejectAppointment(Long appointmentId,UserPrincipal currentUser ) {
         AppointmentEntity app = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Demand ma-lqinahch"));
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+        // --- Security Check ---
+        // Ila klyian, khassu y-koun hwa moul l-appointment
+        if (currentUser.isClient() && !app.getClient().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Ma-3ndkch l-7aq t-annuler had l-appointment!");
+        }
         
+        // Ila coiffeur, khassu y-koun hwa l-coiffeur m-assigné
+        if (currentUser.isCoiffeur() && !app.getCoiffeur().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Had l-appointment machi dyalk!");
+        }
         app.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(app);
         
@@ -239,18 +249,17 @@ public class AppointmentService {
     //hadi 3la hssab updat time ila t3atal coiffeur
     @Transactional
     public void updateFutureAppointments(Long coiffeurId, LocalDateTime newEndTime) {
-    // Jib ghir n-nas li kiy-tsennaw (WAITING) mn daba l-fouq
+        // 1. Jib ga3 n-nas li kiy-tsennaw (WAITING) m-rttbin b start time, bla man-choufo wach l-waqt fet awla la
         List<AppointmentEntity> futureApps = appointmentRepository
-                .findByCoiffeurIdAndStatusAndStartTimeAfterOrderByStartTimeAsc(
+                .findByCoiffeurIdAndStatusOrderByStartTimeAsc(
                     coiffeurId, 
-                    AppointmentStatus.WAITING, 
-                    LocalDateTime.now()
+                    AppointmentStatus.WAITING
                 );
 
         LocalDateTime currentPointer = newEndTime;
 
         for (AppointmentEntity app : futureApps) {
-            // 2. Start time d s-sayed jid = End time d s-sayed li qbel mennu
+            // 2. Start time d s-sayed jdid = End time d s-sayed li qbel mennu
             app.setStartTime(currentPointer);
             
             // 3. 7seb l-End time jdid 3la 7sab duration d les services dyalu
@@ -291,8 +300,32 @@ public class AppointmentService {
                 .orElseThrow(() -> new RuntimeException("Appointment malqinahch"));
                 
         app.setStatus(AppointmentStatus.COMPLETED);
-        app.setEndTime(LocalDateTime.now()); // Salla dba
+        LocalDateTime now = LocalDateTime.now();
+        app.setEndTime(now); // Salla dba
+        // 👇 ZID HADI 1: N-7sbou ch7al d l-weqt khda b-s-sa7 w n-sajloha f DB
+        if (app.getStartTime() != null) {
+            long minutes = Duration.between(app.getStartTime(), now).toMinutes();
+            app.setActualDuration((int) minutes);
+        }
+
         appointmentRepository.saveAndFlush(app);
+        
+        // 👇 ZID HADI 2: N-rttbou l-waqt dyal n-nas li kiy-tsennaw mour had l-client
+        updateFutureAppointments(app.getCoiffeur().getId(), now);
+        // 👇 3. 🔥 HNA ZIDNA L-LOGIC DYAL STATUS L-JDIDA 🔥 👇
+        // N-checkiw wach l-coiffeur baqi khddam f chi wa7ed khor (IN_PROGRESS)
+        Optional<AppointmentEntity> baqiKhdam = appointmentRepository
+                .findTopByCoiffeurIdAndStatusInOrderByEndTimeDesc(
+                    app.getCoiffeur().getId(), 
+                    List.of(AppointmentStatus.IN_PROGRESS)
+                );
+
+        // Ila l-korsi khawi daba, u l-coiffeur kan status dyalo FULL, n-reddouh ACTIVE bo7dou!
+        if (baqiKhdam.isEmpty() && app.getCoiffeur().getCurrentStatus() == BarberStatus.FULL) {
+            app.getCoiffeur().setCurrentStatus(BarberStatus.ACTIVE);
+            userRepository.save(app.getCoiffeur());
+        }
+        // 👆 ========================================= 👆
     if (app.getClient() != null) {
             System.out.println("Sending signal to user: " + app.getClient().getId()); // <--- CHOUF WACH KAT-TLA3 HADI
             String clientTopic = "/topic/user/" + app.getClient().getId();
@@ -300,6 +333,7 @@ public class AppointmentService {
         } else {
             System.out.println("Client is NULL - No signal sent"); // <--- ILA TLA3AT HADI, RA L-ENTITY MA-FIHACH CLIENT
         }
+        messagingTemplate.convertAndSend("/topic/queue/" + app.getCoiffeur().getId(), "UPDATE_QUEUE");
         return mapToResponseDTO(appointmentRepository.save(app));
     }
     // had queeue li ychofha coiffeur la2i7at l2intidar 
@@ -349,5 +383,43 @@ public class AppointmentService {
                 .stream()
                 .map(this::mapToResponseDTO)
                 .toList();
+    }
+
+    // 🔥 Button Clear: Kat-mssa7 klyan mn n-nouba u katti-gad l-waqt l-nas li morah
+    @Transactional
+    public void clearAppointment(Long appointmentId) {
+        AppointmentEntity app = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment malqinahch"));
+        
+        // 1. Check wach l-klyan baqi WAITING aw PENDING (Ma-ymknch n-ms7o wahed IN_PROGRESS)
+        if (app.getStatus() != AppointmentStatus.WAITING && app.getStatus() != AppointmentStatus.PENDING) {
+            throw new RuntimeException("Ma-ymknch t-clear-i wahed m-bedi (In Progress) wla msali!");
+        }
+
+        // 2. Beddel Status l-CANCELLED
+        app.setStatus(AppointmentStatus.CANCELLED);
+        appointmentRepository.saveAndFlush(app);
+        
+        // 3. Jib l-waqt mnin ghadi t-bda n-nouba jdida
+        // N-choufo wach l-coiffeur khddam f chi wahed daba (IN_PROGRESS)
+        Optional<AppointmentEntity> inProgressApp = appointmentRepository
+                .findTopByCoiffeurIdAndStatusInOrderByEndTimeDesc(
+                    app.getCoiffeur().getId(), 
+                    List.of(AppointmentStatus.IN_PROGRESS)
+                );
+                
+        // Ila kan khddam f chi wahed, n-nouba ghadi t-bda melli y-sali m3ah (getEndTime).
+        // Ila makanch (coiffeur jales), n-nouba ghadi t-bda mn daba (now).
+        LocalDateTime nextStartTime = inProgressApp.map(AppointmentEntity::getEndTime).orElse(LocalDateTime.now());
+        
+        // 4. Qadd l-weqt l-nas li bqaw f n-nouba (Recalculate)
+        updateFutureAppointments(app.getCoiffeur().getId(), nextStartTime);
+        
+        // 5. Sift Notifications l-Front-end
+        messagingTemplate.convertAndSend("/topic/queue/" + app.getCoiffeur().getId(), "UPDATE_QUEUE");
+        
+        if (app.getClient() != null) {
+            messagingTemplate.convertAndSend("/topic/user/" + app.getClient().getId(), "QUEUE_UPDATED");
+        }
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ajemi.barber.Ta7li9_app.dto.BarberSearchDto;
+import com.ajemi.barber.Ta7li9_app.dto.QueueInfoDto;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentEntity;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentStatus;
 import com.ajemi.barber.Ta7li9_app.entity.FollowedBarber;
@@ -27,10 +28,11 @@ public class ManageBarberService {
     private FollowedRepository followedRepository;
     @Autowired
     private AppointmentRepository appointmentRepository;
+    @Autowired BarberService barberService;
 
     public List<BarberSearchDto> findBarberForClient(String query, Long clientId) {
         // 1. Jib l-barbers mn l-ba7t
-        List<User> barbers = userRepository.searchBarbers(query);
+        List<User> barbers = searchBarbersHybrid(clientId,query);
 
         // 2. Mapper m3a l-check d l-favorite
         return barbers.stream()
@@ -45,6 +47,18 @@ public class ManageBarberService {
                 })
                 .collect(Collectors.toList());
     }
+    public List<User> searchBarbersHybrid(Long clientId, String query) {
+    // 1. Jbed l-IDs dyal l-barbers li déjà suivi
+        List<Long> followedIds = followedRepository.findByClientId(clientId)
+                .stream()
+                .map(f -> f.getBarber().getId())
+                .collect(Collectors.toList());
+
+        // 2. Query li kaddi-tcheki 3la joj 7wayej:
+        //    - Exact match f ga3 l-7ajama.
+        //    - Aw Prefix match ghi f hadouk li f followedIds.
+        return userRepository.searchBarbersHybrid(query, followedIds);
+    }
 
     private BarberSearchDto convertToDto(User user, boolean isFav,Long id) {
         BarberSearchDto dto = new BarberSearchDto();
@@ -55,13 +69,18 @@ public class ManageBarberService {
         dto.setCurrentStatus(user.getCurrentStatus()); // Hadchi kheddam b WebSocket
         dto.setFavorite(isFav);
             // 🕒 estimated wait time
-        int waitTime = calculateEstimatedWaitTime(user.getId());
-        dto.setEstimatedWaitTime(waitTime);
-                    boolean alreadyInQueue = appointmentRepository.existsByClientIdAndStatusIn(
-                id, 
-                List.of(AppointmentStatus.PENDING, AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
-            );
+        QueueInfoDto info = calculateQueueInfo(user.getId(), id);
+        
+        dto.setEstimatedWaitTime(info.getWaitTime());
+        dto.setQueuePosition(info.getQueuePosition());
+        boolean alreadyInQueue = appointmentRepository
+            .existsByClientIdAndCoiffeurIdAndStatusIn(
+                id,
+                user.getId(),
+                        List.of( AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
+                    );
         dto.setInQueue(alreadyInQueue); // غادي نحسبوها بعداً
+        dto.setDisplayStatus(barberService.calculateStatusForClient(user));
         return dto;
     }
 
@@ -69,7 +88,7 @@ public class ManageBarberService {
     public void addBarberToMyList(Long clientId, Long barberId) {
         User client = userRepository.findById(clientId).orElseThrow(() -> new RuntimeException("Client not found"));
         User barber = userRepository.findById(barberId).orElseThrow(() -> new RuntimeException("Barber not found"));
-        if (!"ROLE_COIFFEUR".equals(barber.getRole())) {
+        if (!"COIFFEUR".equals(barber.getRole())) {
             throw new RuntimeException("Hada machi coiffeur!");
         }
         // Check wach deja m-ad-ih bach ma-i-t-3awedch
@@ -122,37 +141,51 @@ public class ManageBarberService {
         followedRepository.save(favorite);
     }
 
-    private int calculateEstimatedWaitTime(Long barberId) {
-            // 1️⃣ نجيبو appointments لي IN_PROGRESS و WAITING
-            List<AppointmentStatus> statuses = List.of(
-                AppointmentStatus.IN_PROGRESS,
-                AppointmentStatus.WAITING
-            );
-                List<AppointmentEntity> queue = appointmentRepository
-            .findByCoiffeurIdAndStatusInOrderByStartTimeAsc(barberId, statuses);
+    private QueueInfoDto calculateQueueInfo(Long barberId, Long clientId) {
 
-                int totalMinutes = 0;
-                LocalDateTime now = LocalDateTime.now();
-                    // 2️⃣ نحسبو كل appointment
-            for (AppointmentEntity appointment : queue) {
+        List<AppointmentStatus> statuses = List.of(
+            AppointmentStatus.IN_PROGRESS,
+            AppointmentStatus.WAITING
+        );
 
-                if (appointment.getStatus() == AppointmentStatus.IN_PROGRESS) {
-                    // الوقت لي بقا فالكرسي
-                    long remaining = Duration.between(now, appointment.getEndTime()).toMinutes();
-                    if (remaining > 0) {
-                        totalMinutes += remaining;
-                    }
-                } else { // WAITING
-                    // نجمعو مدة كل الخدمات لي اختاروها
-                    int duration = appointment.getServices()
-                            .stream()
-                            .mapToInt(ServiceEntity::getDuration)
-                            .sum();
-                    totalMinutes += duration;
-                }
+        List<AppointmentEntity> queue =
+            appointmentRepository.findByCoiffeurIdAndStatusInOrderByStartTimeAsc(barberId, statuses);
+
+        int totalMinutes = 0;
+        int position = 0;
+        boolean found = false;
+
+        LocalDateTime now = LocalDateTime.now();
+
+        for (AppointmentEntity appointment : queue) {
+
+            // ⛔ منين نلقاك، نحبسو position counting
+            if (!found) position++;
+
+            if (appointment.getClient() != null && appointment.getClient().getId().equals(clientId)) {
+                found = true;
             }
 
-            return totalMinutes; // بالدقائق
+            if (appointment.getStatus() == AppointmentStatus.IN_PROGRESS) {
+
+                long remaining = Duration.between(now, appointment.getEndTime()).toMinutes();
+
+                if (remaining > 0) {
+                    totalMinutes += remaining;
+                }
+
+            } else {
+
+                int duration = appointment.getServices()
+                        .stream()
+                        .mapToInt(ServiceEntity::getDuration)
+                        .sum();
+
+                totalMinutes += duration;
+            }
+        }
+
+        return new QueueInfoDto(totalMinutes, position);
     }
 
 }

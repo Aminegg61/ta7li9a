@@ -17,12 +17,23 @@ public interface UserRepository extends JpaRepository<User, Long>{
     Optional<User> findByPhoneNumber(String phoneNumber);
 
     //search barber-----------------------------------------------------------------------------------
-    @Query("SELECT u FROM User u WHERE u.role = 'ROLE_COIFFEUR' AND (" +
-           // 1. Check Full Name (First + Last)
-           "LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-
-           // 3. Check Phone Number (Exact match or starts with)
-           "u.phoneNumber LIKE CONCAT('%', :query, '%'))")
-    List<User> searchBarbers(@Param("query") String query);
+        @Query("SELECT u FROM User u WHERE u.role = 'COIFFEUR' AND (" +
+            "LOWER(CONCAT(u.firstName, ' ', u.lastName)) = LOWER(TRIM(:query)) OR " +
+            "u.phoneNumber = TRIM(:query))")
+        List<User> searchBarbers(@Param("query") String query);
+        @Query("SELECT u FROM User u WHERE u.role = 'COIFFEUR' AND (" +
+       // A. Exact Match (l-ga3 l-nas)
+       "LOWER(CONCAT(u.firstName, ' ', u.lastName)) = LOWER(TRIM(:query)) OR " +
+       "LOWER(CONCAT(u.lastName, ' ', u.firstName)) = LOWER(TRIM(:query)) OR " +
+       "u.phoneNumber = TRIM(:query) OR " +
+       
+       // B. Prefix Match (Ghi l-nas li déjà suivi)
+       "(u.id IN :followedIds AND (" +
+           "LOWER(u.firstName) LIKE LOWER(CONCAT(TRIM(:query), '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT(TRIM(:query), '%')) OR " +
+           "u.phoneNumber LIKE CONCAT(TRIM(:query), '%')" +
+       "))" +
+       ")")
+        List<User> searchBarbersHybrid(@Param("query") String query, @Param("followedIds") List<Long> followedIds);
     
 }

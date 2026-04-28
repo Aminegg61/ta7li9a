@@ -40,4 +40,7 @@ export class AppointmentService {
   getMyActiveAppointment(): Observable<AppointmentResponseDTO[]> {
     return this.http.get<AppointmentResponseDTO[]>(`${this.baseUrl}/my-active`);
   }
+  clearAppointment(id: number) {
+    return this.http.put(`${this.baseUrl}/${id}/clear`, {});
+  }
 }

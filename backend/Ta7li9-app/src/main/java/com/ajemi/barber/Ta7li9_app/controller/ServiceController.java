@@ -27,52 +27,48 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/services")
+@PreAuthorize("hasRole('COIFFEUR')")
 public class ServiceController {
     @Autowired
     private ServicesBarberService serviceService;
 
     @PostMapping("/add")
-    @PreAuthorize("hasRole('COIFFEUR')")
     public ResponseEntity<ServiceResponseDTO> addService(
             @Valid @RequestBody ServiceRequestDTO requestDTO,
             @AuthenticationPrincipal UserPrincipal currentUser) {
-        
         // L-controller kay-3ti l-ID d l-user l l-service layer
         ServiceResponseDTO response = serviceService.addService(requestDTO, currentUser.getId());
         return ResponseEntity.ok(response);
     }
 
-
     @GetMapping("/my-services")
-    @PreAuthorize("hasRole('COIFFEUR')")
     public ResponseEntity<List<ServiceResponseDTO>> getMyServices(
-            @AuthenticationPrincipal UserPrincipal currentUser) {
-        return ResponseEntity.ok(serviceService.getCoiffeurServices(currentUser.getId()));
-    }
-
-    @PutMapping("/update/{id}")
-    @PreAuthorize("hasRole('COIFFEUR')")
-    public ResponseEntity<ServiceResponseDTO> updateService(
+        @AuthenticationPrincipal UserPrincipal currentUser) {
+            return ResponseEntity.ok(serviceService.getCoiffeurServices(currentUser.getId()));
+        }
+        
+        @PutMapping("/update/{id}")
+        public ResponseEntity<ServiceResponseDTO> updateService(
             @PathVariable Long id, 
             @Valid @RequestBody ServiceRequestDTO requestDTO,
             @AuthenticationPrincipal UserPrincipal currentUser) {
-        
-        // currentUser.getId() kiy-ji mn l-token, ma-i-qder 7ta wahed i-zowwro
-        ServiceResponseDTO response = serviceService.updateService(id, requestDTO, currentUser.getId());
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasRole('COIFFEUR')")
-    public ResponseEntity<String> deleteService(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserPrincipal currentUser) {
-        
-        serviceService.deleteService(id, currentUser.getId());
-        return ResponseEntity.ok("Service t-mssa7 b naja7!");
-    }
-
-    @GetMapping("/barber/{coiffeurId}")
+                
+                // currentUser.getId() kiy-ji mn l-token, ma-i-qder 7ta wahed i-zowwro
+                ServiceResponseDTO response = serviceService.updateService(id, requestDTO, currentUser.getId());
+                return ResponseEntity.ok(response);
+            }
+            
+            @DeleteMapping("/delete/{id}")
+            public ResponseEntity<String> deleteService(
+                @PathVariable Long id,
+                @AuthenticationPrincipal UserPrincipal currentUser) {
+                    
+                    serviceService.deleteService(id, currentUser.getId());
+                    return ResponseEntity.ok("Service t-mssa7 b naja7!");
+                }
+                
+                @GetMapping("/barber/{coiffeurId}")
+                @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<List<ServiceResponseDTO>> getBarberServices(@PathVariable Long coiffeurId) {
         return ResponseEntity.ok(serviceService.getCoiffeurServices(coiffeurId));
     }

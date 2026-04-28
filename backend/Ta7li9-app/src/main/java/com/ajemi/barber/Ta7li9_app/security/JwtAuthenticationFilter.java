@@ -31,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = jwtUtils.getEmailFromJwtToken(jwt);
             Long id = jwtUtils.getIdFromJwtToken(jwt);
             String role = jwtUtils.getRoleFromJwtToken(jwt);
+            System.out.println(role);
 
             // 1. Crée l-objet Principal
             UserPrincipal principal = new UserPrincipal(id, email, role);

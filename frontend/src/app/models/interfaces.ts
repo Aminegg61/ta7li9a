@@ -34,6 +34,8 @@ export interface BarberSearchDto {
   favorite: boolean;
   estimatedWaitTime: number;
   inQueue: boolean;
+  queuePosition:number;
+  displayStatus:string;
 }
 
 export interface User {

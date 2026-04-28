@@ -10,6 +10,7 @@ import com.ajemi.barber.Ta7li9_app.entity.User;
 
 
 public interface FollowedRepository extends JpaRepository<FollowedBarber, Long>{
+    List<FollowedBarber> findByClientId(Long clientId);
     boolean existsByClientAndBarber(User client, User barber);
     List<FollowedBarber> findByClientIdAndIsFavorite(Long clientId,boolean isFavorite);
     void deleteByClientIdAndBarberId(Long clientId, Long barberId);

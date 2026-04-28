@@ -143,18 +143,27 @@ import { ChangeDetectorRef } from '@angular/core';
               </div>
 
               <!-- Actions for the first item -->
-              <div *ngIf="i === 0">
-                <button *ngIf="apt.status === 'WAITING'" (click)="startAppointment(apt.id)"
-                  class="bg-green-500 text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-xl hover:bg-green-400 transition-all">
-                  START
-                </button>
-                <div *ngIf="apt.status === 'IN_PROGRESS'" class="flex items-center gap-3">
-                  <span class="text-[10px] font-black text-green-500 animate-pulse uppercase tracking-widest">In Chair...</span>
-                  <button (click)="completeAppointment(apt.id)"
-                    class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-xl hover:bg-yellow-400 transition-all">
-                    DONE
+<div class="flex items-center gap-3">
+                
+                <div *ngIf="i === 0">
+                  <button *ngIf="apt.status === 'WAITING'" (click)="startAppointment(apt.id)"
+                    class="bg-green-500 text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-xl hover:bg-green-400 transition-all">
+                    START
                   </button>
+                  <div *ngIf="apt.status === 'IN_PROGRESS'" class="flex items-center gap-3">
+                    <span class="text-[10px] font-black text-green-500 animate-pulse uppercase tracking-widest">In Chair...</span>
+                    <button (click)="completeAppointment(apt.id)"
+                      class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-xl hover:bg-yellow-400 transition-all">
+                      DONE
+                    </button>
+                  </div>
                 </div>
+
+                <button *ngIf="apt.status === 'WAITING'" (click)="clearAppointment(apt.id)" title="Remove from queue"
+                  class="w-10 h-10 flex items-center justify-center bg-red-900/20 text-red-500 rounded-xl hover:bg-red-900/40 transition-all">
+                  ✕
+                </button>
+                
               </div>
             </div>
           </div>
@@ -418,6 +427,21 @@ export class BarberDashboard implements OnInit {
     this.appointmentService.completeAppointment(id).subscribe(() => {
       this.loadQueue();
     });
+  }
+
+  // 🔥 Zid had l-methode hna
+  clearAppointment(id: number) {
+    if (confirm('Wach m-atked bghiti t-mssa7 had l-klyan mn n-nouba?')) {
+      this.appointmentService.clearAppointment(id).subscribe({
+        next: () => {
+          this.loadQueue(); // Refresh n-nouba
+        },
+        error: (err) => {
+          console.error("Erreur f clear", err);
+          alert("Ma-ymknch t-msa7 had l-klyan dba.");
+        }
+      });
+    }
   }
 
   // --- Manual Add Logic ---

@@ -41,9 +41,9 @@ public class AuthService {
         User user = new User();
         String role = body.getRole().toUpperCase();
         if (role.equals("CLIENT") || role.equals("COIFFEUR")) {
-            user.setRole("ROLE_" + role);
+            user.setRole(role);
         } else {
-            user.setRole("ROLE_CLIENT"); // Default role
+            user.setRole("CLIENT"); // Default role
         }
         
         user.setFirstName(body.getFirstName());

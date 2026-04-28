@@ -8,13 +8,12 @@ export const landingGuard: CanActivateFn = (route, state) => {
 
   if (authService.isLoggedIn()) {
     const role = authService.getUserRole();
-    if (role === 'ROLE_CLIENT') {
+    if (role === 'CLIENT') {
       router.navigate(['/client/dashboard']);
-    } else if (role === 'ROLE_COIFFEUR') {
+    } else if (role === 'COIFFEUR') {
       router.navigate(['/barber/dashboard']);
     }
     return false; // يمنع الوصول للLanding
   }
-
   return true; // إذا ما عندوش token، خلي يشوف Landing
 };

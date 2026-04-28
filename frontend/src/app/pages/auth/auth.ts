@@ -269,6 +269,8 @@ export class Auth implements OnInit {
     if (this.isLogin) {
       this.authService.login({ phoneNumber: val.phoneNumber, password: val.password }).subscribe({
         next: (res: any) => {
+          console.log(res);
+          
           localStorage.setItem('token', res.token);
           this.redirectByRole(res.role);
         },
@@ -310,7 +312,7 @@ export class Auth implements OnInit {
   }
 
   private redirectByRole(role: string) {
-    if (role === 'ROLE_COIFFEUR') {
+    if (role === 'COIFFEUR') {
       this.router.navigate(['/barber/dashboard']);
     } else {
       this.router.navigate(['/client/dashboard']);

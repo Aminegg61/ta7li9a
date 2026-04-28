@@ -110,18 +110,26 @@ import { AuthService } from '../../../services/auth';
                 
                 <div>
                   <h3 class="text-2xl font-black italic uppercase tracking-tighter">{{ barber.firstName }} {{ barber.lastName }}</h3>
-                  <p class="text-[10px] font-black uppercase tracking-widest mt-1" [ngClass]="getStatusTextColor(barber.currentStatus)">
-                    {{ barber.currentStatus }}
+                  <p class="text-[10px] font-black uppercase tracking-widest mt-1" [ngClass]="getStatusTextColor(barber.displayStatus)">
+                    {{ barber.displayStatus }}
                   </p>
                 </div>
               </div>
 
               <!-- Stats -->
               <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800">
-                  <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">Queue</p>
-                  <p class="font-black text-xl">{{ barber.inQueue ? 'Yes' : 'No' }} <span class="text-xs text-neutral-500 ml-1">in line</span></p>
-                </div>
+            <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800">
+                <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">
+                  Queue Position
+                </p>
+
+                <p class="font-black text-xl text-yellow-500">
+                  #{{ barber.queuePosition || '' }}
+                  <span class="text-xs text-neutral-500 ml-1">
+                    {{ barber.inQueue ? 'in line' : 'not in queue' }}
+                  </span>
+                </p>
+            </div>
                 <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800">
                   <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">Est. Wait</p>
                   <p class="font-black text-xl text-yellow-500">{{ barber.estimatedWaitTime }} <span class="text-xs text-neutral-500 font-bold ml-1">min</span></p>
@@ -138,21 +146,32 @@ import { AuthService } from '../../../services/auth';
         <div *ngIf="isAlreadyRequested(barber.id)" 
             class="w-full bg-neutral-900 text-yellow-500/50 py-4 text-center rounded-xl border border-yellow-500/10 mb-2 uppercase font-black text-[10px] tracking-widest">
           Pending Response... 
-<button (click)="closeModal()" 
-  class="flex-1 bg-transparent border border-neutral-700 text-neutral-400 
-         font-black uppercase tracking-widest py-3 rounded-xl 
-         hover:bg-neutral-800 hover:text-white hover:border-neutral-500
-         active:scale-95 transition-all duration-200">
+<button (click)="cancelMyRequest(barber.id)" 
+  class="mt-3 px-4 py-2 text-[10px] font-black uppercase tracking-widest
+         text-red-400 rounded-lg
+         bg-red-500/10 backdrop-blur-sm
+         border border-red-500/20
+         hover:bg-red-500/20 hover:text-red-300 hover:shadow-[0_0_12px_rgba(239,68,68,0.4)]
+         active:scale-95
+         transition-all duration-300">
   Cancel
 </button>
         </div>
 
 
-        <div *ngIf="getAcceptedApp()?.barberId === barber.id"
+<div *ngIf="getAcceptedApp()?.barberId === barber.id && getAcceptedApp()?.status === 'WAITING'"
             class="w-full bg-neutral-950 text-green-500 text-center py-4 rounded-xl border border-green-500/20 shadow-inner mb-2">
           <span class="flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest">
             <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
             You are in his Queue
+          </span>
+        </div>
+
+        <div *ngIf="getAcceptedApp()?.barberId === barber.id && getAcceptedApp()?.status === 'IN_PROGRESS'"
+            class="w-full bg-yellow-500/10 text-yellow-500 text-center py-4 rounded-xl border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)] mb-2 transition-all">
+          <span class="flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest">
+            <span class="w-2 h-2 bg-yellow-500 rounded-full animate-ping"></span>
+            ✂️ In The Chair...
           </span>
         </div>
 
@@ -295,7 +314,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
         console.log("WebSocket Message received for User:", msg);
         if (msg === 'QUEUE_UPDATED') {
           // Tsenna nos saniya bach Backend y-commit-i l-DB
-        
+          
           setTimeout(() => this.loadMyStatus(), 500);
         }
       });
@@ -349,36 +368,75 @@ export class ClientDashboard implements OnInit, OnDestroy {
     this.barberSubs = [];
 
     this.barberService.getMyBarbers().subscribe(list => {
+      console.log(list);
+      
       this.myBarbers = list;
       this.subscribeToBarbers(list);
     });
 
     this.barberService.getMyFavorites().subscribe(list => {
       this.myFavorites = list;
+      console.log(list);
       this.subscribeToBarbers(list);
     });
   }
 
+  // subscribeToBarbers(list: BarberSearchDto[]) {
+  //   this.barberSubs.forEach(s => s.unsubscribe());
+  //   this.barberSubs = [];
+
+  //   list.forEach(b => {
+  //     const sub = this.ws.subscribeToBarberStatus(b.id).subscribe(newStatus => {
+  //       const update = (arr: BarberSearchDto[]) => {
+  //         const found = arr.find(x => x.id === b.id);
+  //         if (found) found.currentStatus = newStatus as any;
+  //       };
+
+  //       update(this.myBarbers);
+  //       update(this.myFavorites);
+
+  //       this.cdr.detectChanges();
+  //     });
+
+  //     this.barberSubs.push(sub);
+  //   });
+  // }
+  // 1. L-Méthode li katti-tsennet l-WebSocket
   subscribeToBarbers(list: BarberSearchDto[]) {
+    // Msa7 l-wden l-qdam bach may-t-dbblouch
     this.barberSubs.forEach(s => s.unsubscribe());
     this.barberSubs = [];
 
     list.forEach(b => {
-      const sub = this.ws.subscribeToBarberStatus(b.id).subscribe(newStatus => {
-        const update = (arr: BarberSearchDto[]) => {
-          const found = arr.find(x => x.id === b.id);
-          if (found) found.currentStatus = newStatus as any;
-        };
-
-        update(this.myBarbers);
-        update(this.myFavorites);
-
-        this.cdr.detectChanges();
+      // 👈 Hna katti-tsennet l-ay bedil wqe3 3nd l-coiffeur
+      // (Ila knti msmiha f ws service "subscribeToBarberStatus", khdem biha)
+      const sub = this.ws.subscribeToQueue(b.id).subscribe(msg => {
+        console.log("Signal wsel men 3nd l-barber " + b.id + " :", msg);
+        
+        // 🔥 Hada hwa s-ser: melli y-wsel signal, tsenna chwiya w 3iyyet l-API t-jib l-jdid
+        setTimeout(() => {
+          this.refreshBarberData();
+        }, 500);
       });
 
       this.barberSubs.push(sub);
     });
   }
+
+  // 2. L-Méthode li katti-jib l-Data jdida mn l-Backend bla ma t-rebel l-App
+  refreshBarberData() {
+    this.barberService.getMyBarbers().subscribe(list => {
+      this.myBarbers = list;
+      this.cdr.detectChanges(); // 👈 Katti-goul l-Angular y-beddel HTML f l-blassa
+    });
+
+    this.barberService.getMyFavorites().subscribe(list => {
+      this.myFavorites = list;
+      this.cdr.detectChanges(); // 👈 Katti-goul l-Angular y-beddel HTML f l-blassa
+    });
+    this.loadMyStatus();
+  }
+  
 
 
   getStatusColor(status: string) {
@@ -387,10 +445,16 @@ export class ClientDashboard implements OnInit, OnDestroy {
     return 'bg-neutral-600';
   }
 
+  // getStatusTextColor(status: string) {
+  //   if (status === 'ACTIVE') return 'text-green-500';
+  //   if (status === 'FULL') return 'text-orange-500';
+  //   return 'text-neutral-500';
+  // }
   getStatusTextColor(status: string) {
-    if (status === 'ACTIVE') return 'text-green-500';
-    if (status === 'FULL') return 'text-orange-500';
-    return 'text-neutral-500';
+    if (status === 'OPEN') return 'text-green-500';
+    if (status === 'ON_BREAK') return 'text-yellow-500';
+    if (status === 'BUSY' || status === 'FULL') return 'text-orange-500';
+    return 'text-neutral-500'; // CLOSED
   }
 
   toggleFavorite(barberId: number) {
@@ -468,15 +532,23 @@ export class ClientDashboard implements OnInit, OnDestroy {
     const payload: AppointmentRequestDTO = {
       barberId: this.targetBarberId,
       serviceIds: this.selectedServices,
-      manualName: '',   // Beddel null b string khawi
-      clientId: undefined // Blast null, ista3mel undefined ila kan optional
+      //manualName: '',   // Beddel null b string khawi
+      //clientId: undefined // Blast null, ista3mel undefined ila kan optional
     };
 
     this.appointmentService.createAppointment(payload).subscribe({
-      next: () => {
+      next: (res) => {
+        console.log(payload);
+        
+              // 🔥 زيدها مباشرة فـ state
+      this.userAppointments.push({
+        ...res,
+        status: 'PENDING'
+      });
         console.log(payload);
         
         this.serviceSelectOpen = false;
+         this.cdr.detectChanges();
         this.loadLists();
       }
     });

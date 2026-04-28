@@ -19,7 +19,7 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   if (expectedRoles && !expectedRoles.includes(userRole)) {
     setTimeout(() => {
-      if (userRole === 'ROLE_COIFFEUR') {
+      if (userRole === 'COIFFEUR') {
         router.navigate(['/barber/dashboard']);
       } else {
         router.navigate(['/client/dashboard']);

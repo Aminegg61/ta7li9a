@@ -26,7 +26,7 @@ public class Ta7li9AppApplication {
 				admin.setEmail("admin@ta7li9a.com");
 				admin.setPassword(encoder.encode("Admin@2026")); // Password qwi
 				admin.setPhoneNumber("0000011111");
-				admin.setRole("ROLE_ADMIN");
+				admin.setRole("ADMIN");
 				userRepository.save(admin);
 				System.out.println("Admin account created: admin@ta7li9a.com / Admin@2026");
 			}

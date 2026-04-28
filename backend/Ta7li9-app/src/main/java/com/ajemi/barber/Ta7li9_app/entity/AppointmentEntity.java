@@ -59,4 +59,7 @@ public class AppointmentEntity {
     // 6. Ila kān l-client jdid w dkhlo l-coiffeur manual (bla ma i-koun 3ndo compte)
     private String manualClientName;
     private String manualClientPhone;
+
+    // 🔥 Zid hada: L-waqt l-7aqiqi li khdaw les services (b minutes)
+    private Integer actualDuration;
 }

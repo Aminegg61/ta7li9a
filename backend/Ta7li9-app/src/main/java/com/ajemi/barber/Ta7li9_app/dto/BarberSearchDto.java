@@ -15,4 +15,6 @@ public class BarberSearchDto {
     private boolean favorite;
     private int estimatedWaitTime;
     private boolean inQueue;
+    private int queuePosition;
+    private String displayStatus;
 }

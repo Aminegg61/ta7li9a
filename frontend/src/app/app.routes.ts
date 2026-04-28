@@ -11,12 +11,12 @@ export const routes: Routes = [ { path: '', component: Landing , canActivate: [l
     path: 'barber/dashboard', 
     component: BarberDashboard, 
     canActivate: [authGuard], 
-    data: { roles: ['ROLE_COIFFEUR'] } 
+    data: { roles: ['COIFFEUR'] } 
   },
   { 
     path: 'client/dashboard', 
     component: ClientDashboard, 
     canActivate: [authGuard], 
-    data: { roles: ['ROLE_CLIENT'] } 
+    data: { roles: ['CLIENT'] } 
   }
 ];

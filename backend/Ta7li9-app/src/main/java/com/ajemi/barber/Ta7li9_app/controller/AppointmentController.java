@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,11 +25,13 @@ import com.ajemi.barber.Ta7li9_app.service.AppointmentService;
 
 @RestController
 @RequestMapping("/api/appointments")
+@PreAuthorize("hasAnyRole('COIFFEUR', 'CLIENT')")
 public class AppointmentController {
     @Autowired
     private AppointmentService appointmentService;
 
     // 1. Unified Search (History + Global b phone)
+    @PreAuthorize("hasRole('COIFFEUR')")
     @GetMapping("/search-clients")
     public ResponseEntity<List<User>> searchClients(
         @AuthenticationPrincipal UserPrincipal currentUser,
@@ -42,35 +45,36 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponseDTO> createAppointment(
         @AuthenticationPrincipal UserPrincipal currentUser,
         @RequestBody AppointmentRequestDTO dto) {
-            System.out.println("DTO Received: " + dto.toString());
+        System.out.println("DTO Received: " + dto.toString());
         AppointmentResponseDTO response = appointmentService.createAppointment(currentUser, dto);
         return ResponseEntity.ok(response);
     }
-
+    @PreAuthorize("hasRole('COIFFEUR')")
     @GetMapping("/today-queue")
     public ResponseEntity<List<AppointmentResponseDTO>> getTodayQueue(@AuthenticationPrincipal UserPrincipal currentUser) {
         return ResponseEntity.ok(appointmentService.getTodayQueue(currentUser.getId()));
     }
-
+    @PreAuthorize("hasRole('COIFFEUR')")
     @PutMapping("/{id}/start")
     public ResponseEntity<AppointmentResponseDTO> startAppointment(@PathVariable Long id) {
         // Hna t-qder t-zid logic l-start f l-service ila bghiti (Status -> IN_PROGRESS)
         return ResponseEntity.ok(appointmentService.startAppointment(id));
     }
 
-    
+    @PreAuthorize("hasRole('COIFFEUR')")
     @PutMapping("/{id}/done")
     public ResponseEntity<AppointmentResponseDTO> completeAppointment(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.completeAppointment(id));
     }
+    @PreAuthorize("hasRole('COIFFEUR')")
     @PutMapping("/{id}/accept")
     public ResponseEntity<AppointmentResponseDTO> accept(@PathVariable Long id) {
         return ResponseEntity.ok(appointmentService.acceptAppointment(id));
     }
 
     @PutMapping("/{id}/reject")
-    public ResponseEntity<Void> reject(@PathVariable Long id) {
-        appointmentService.rejectAppointment(id); // Kat-beddel status l CANCELLED
+    public ResponseEntity<Void> reject(@PathVariable Long id ,@AuthenticationPrincipal UserPrincipal currentUser) {
+        appointmentService.rejectAppointment(id,currentUser); // Kat-beddel status l CANCELLED
         return ResponseEntity.noContent().build();
     }
 
@@ -80,5 +84,11 @@ public class AppointmentController {
         // currentUser.getId() ghadi y-3tina ID dyal l-klyan li m-connecti
         List<AppointmentResponseDTO> response = appointmentService.getMyActiveAppointments(currentUser.getId());
         return ResponseEntity.ok(response);
+    }
+    @PreAuthorize("hasRole('COIFFEUR')")
+    @PutMapping("/{id}/clear")
+    public ResponseEntity<Void> clearAppointment(@PathVariable Long id) {
+        appointmentService.clearAppointment(id);
+        return ResponseEntity.noContent().build(); // HTTP 204: Kolchi daz mzyan bla data f l-body
     }
 }
