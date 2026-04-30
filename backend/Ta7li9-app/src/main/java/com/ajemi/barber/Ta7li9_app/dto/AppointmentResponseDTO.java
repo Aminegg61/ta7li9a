@@ -18,4 +18,5 @@ public class AppointmentResponseDTO {
     private String status;
     // T-qder t-zid duration total bach t-shhel l-7sab f Angular
     private int totalDuration;
+    private List<AppointmentItemDTO> items;
 }

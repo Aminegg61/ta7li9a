@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,14 +38,17 @@ public class AppointmentEntity {
     @JoinColumn(name = "coiffeur_id", nullable = false)
     private User coiffeur;
 
-    // 3. Ach mn service khtar?
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "appointment_services",
-        joinColumns = @JoinColumn(name = "appointment_id"),
-        inverseJoinColumns = @JoinColumn(name = "service_id")
-    )
-    private List<ServiceEntity> services;
+    // // 3. Ach mn service khtar?
+    // @ManyToMany(fetch = FetchType.LAZY)
+    // @JoinTable(
+    //     name = "appointment_services",
+    //     joinColumns = @JoinColumn(name = "appointment_id"),
+    //     inverseJoinColumns = @JoinColumn(name = "service_id")
+    // )
+    // private List<ServiceEntity> services;
+    // 3. Ach mn services khtar? (M-rbotin b l-Entity l-jdida li fiha l-waqt)
+    @OneToMany(mappedBy = "appointment", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<AppointmentItem> appointmentItems = new java.util.ArrayList<>();
 
     // 4. L-waqt dyal l-appontment
     private LocalDateTime startTime;

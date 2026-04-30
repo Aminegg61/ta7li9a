@@ -173,9 +173,9 @@ public class ManageBarberService {
                     totalMinutes += remaining;
                 }
             } else {
-                int duration = appointment.getServices()
+                int duration = appointment.getAppointmentItems()
                         .stream()
-                        .mapToInt(ServiceEntity::getDuration)
+                        .mapToInt(item -> item.getService().getDuration())
                         .sum();
                 totalMinutes += duration;
             }

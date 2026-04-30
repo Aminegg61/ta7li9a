@@ -43,4 +43,13 @@ export class AppointmentService {
   clearAppointment(id: number) {
     return this.http.put(`${this.baseUrl}/${id}/clear`, {});
   }
+  // 🔥 Start service wahed
+  startItem(itemId: number) {
+    return this.http.put(`${this.baseUrl}/items/${itemId}/start`, {});
+  }
+
+  // 🔥 Sali service wahed
+  completeItem(itemId: number) {
+    return this.http.put(`${this.baseUrl}/items/${itemId}/complete`, {});
+  }
 }

@@ -8,7 +8,13 @@ export interface AppointmentResponseDTO {
   endTime: string;
   status: 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'PENDING';
   totalDuration: number;
+  items: AppointmentItemDTO[];
 }
+  export interface AppointmentItemDTO {
+    id: number;
+    serviceName: string;
+    status: string; // 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+  }
 
 export interface AppointmentRequestDTO {
   barberId?: number | null;

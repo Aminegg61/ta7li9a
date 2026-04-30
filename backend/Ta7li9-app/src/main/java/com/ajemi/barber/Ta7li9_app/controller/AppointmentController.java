@@ -91,4 +91,20 @@ public class AppointmentController {
         appointmentService.clearAppointment(id);
         return ResponseEntity.noContent().build(); // HTTP 204: Kolchi daz mzyan bla data f l-body
     }
+
+    // 🔥 Bda service wahed (Start)
+    @PreAuthorize("hasRole('COIFFEUR')")
+    @PutMapping("/items/{itemId}/start")
+    public ResponseEntity<?> startSingleItem(@PathVariable Long itemId) {
+        appointmentService.startSingleService(itemId);
+        return ResponseEntity.ok().build();
+    }
+
+    // 🔥 Sali service wahed (Done)
+    @PreAuthorize("hasRole('COIFFEUR')")
+    @PutMapping("/items/{itemId}/complete")
+    public ResponseEntity<?> completeSingleItem(@PathVariable Long itemId) {
+        appointmentService.completeSingleService(itemId);
+        return ResponseEntity.ok().build();
+    }
 }

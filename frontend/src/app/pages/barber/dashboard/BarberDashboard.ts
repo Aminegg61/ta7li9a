@@ -123,48 +123,85 @@ import { ChangeDetectorRef } from '@angular/core';
               No appointments in the queue.
             </div>
 
-            <div *ngFor="let apt of activeQueue; let i = index; trackBy: trackByAptId" 
-                 class="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 flex items-center justify-between transition-all"
-                 [ngClass]="{'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.1)]': i === 0}">
+<div *ngFor="let apt of activeQueue; let i = index; trackBy: trackByAptId" 
+                 class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 transition-all flex flex-col"
+                 [ngClass]="{'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.15)]': i === 0}">
               
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm"
-                     [ngClass]="i === 0 ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-neutral-950 text-neutral-500 border border-neutral-800'">
-                  #{{i + 1}}
-                </div>
-                <div>
-                  <h3 class="font-black uppercase tracking-tighter" [ngClass]="i === 0 ? 'text-white text-xl' : 'text-neutral-300 text-lg'">
-                    {{ apt.clientName }}
-                  </h3>
-                  <p class="text-xs font-bold text-neutral-500 mt-0.5">
-                    {{ apt.serviceNames.join(', ') }} • <span class="text-yellow-500">{{ apt.totalDuration }} min</span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Actions for the first item -->
-<div class="flex items-center gap-3">
-                
-                <div *ngIf="i === 0">
-                  <button *ngIf="apt.status === 'WAITING'" (click)="startAppointment(apt.id)"
-                    class="bg-green-500 text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-xl hover:bg-green-400 transition-all">
-                    START
-                  </button>
-                  <div *ngIf="apt.status === 'IN_PROGRESS'" class="flex items-center gap-3">
-                    <span class="text-[10px] font-black text-green-500 animate-pulse uppercase tracking-widest">In Chair...</span>
-                    <button (click)="completeAppointment(apt.id)"
-                      class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-6 py-3 rounded-xl hover:bg-yellow-400 transition-all">
-                      DONE
-                    </button>
+              <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs"
+                       [ngClass]="i === 0 ? 'bg-yellow-500 text-black shadow-md shadow-yellow-500/20' : 'bg-neutral-950 text-neutral-500 border border-neutral-800'">
+                    #{{i + 1}}
+                  </div>
+                  <div>
+                    <h3 class="font-black uppercase tracking-tighter" [ngClass]="i === 0 ? 'text-white text-base' : 'text-neutral-300 text-sm'">
+                      {{ apt.clientName }}
+                    </h3>
+                    <p class="text-[10px] font-bold text-neutral-500 mt-0.5" *ngIf="i !== 0">
+                      {{ apt.serviceNames.join(', ') }} • <span class="text-yellow-500">{{ apt.totalDuration }} min</span>
+                    </p>
                   </div>
                 </div>
 
-                <button *ngIf="apt.status === 'WAITING'" (click)="clearAppointment(apt.id)" title="Remove from queue"
-                  class="w-10 h-10 flex items-center justify-center bg-red-900/20 text-red-500 rounded-xl hover:bg-red-900/40 transition-all">
+                <button *ngIf="apt.status === 'WAITING' && i !== 0" (click)="clearAppointment(apt.id)" title="Remove from queue"
+                  class="w-8 h-8 flex items-center justify-center bg-red-900/20 text-red-500 rounded-lg hover:bg-red-900/40 transition-all text-xs">
                   ✕
                 </button>
-                
               </div>
+
+              <div *ngIf="i === 0" class="mt-3 space-y-2 border-t border-neutral-800/50 pt-3">
+                
+                <ng-container *ngIf="apt.clientId">
+                  <p class="text-[9px] text-yellow-500 font-black uppercase tracking-widest mb-1.5 animate-pulse">Services Tracking:</p>
+                  
+                  <div *ngFor="let item of apt.items" class="flex items-center justify-between bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl">
+                    <span class="text-xs font-bold text-white uppercase">{{ item.serviceName }}</span>
+                    
+                    <button *ngIf="item.status === 'PENDING'" (click)="startItem(item.id)"
+                      class="bg-green-500/20 border border-green-500/30 text-green-500 font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-green-500 hover:text-black transition-all">
+                      START
+                    </button>
+                    
+                    <div *ngIf="item.status === 'IN_PROGRESS'" class="flex items-center gap-2">
+                      <span class="text-[9px] font-black text-green-500 animate-pulse uppercase tracking-widest">✂️ Doing...</span>
+                      <button (click)="completeItem(item.id)"
+                        class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+                        DONE
+                      </button>
+                    </div>
+
+                    <span *ngIf="item.status === 'COMPLETED'" class="text-[9px] text-neutral-600 font-black uppercase tracking-widest flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                      Finished
+                    </span>
+                  </div>
+                </ng-container>
+
+                <ng-container *ngIf="!apt.clientId">
+                  <div class="flex items-center justify-between bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl mt-1">
+                    <span class="text-[9px] text-neutral-400 font-black uppercase tracking-widest">Guest Session</span>
+                    
+                    <button *ngIf="apt.status === 'WAITING'" (click)="startAppointment(apt.id)"
+                      class="bg-green-500/20 border border-green-500/30 text-green-500 font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-green-500 hover:text-black transition-all">
+                      START ALL
+                    </button>
+                    
+                    <div *ngIf="apt.status === 'IN_PROGRESS'" class="flex items-center gap-2">
+                      <span class="text-[9px] font-black text-green-500 animate-pulse uppercase tracking-widest">✂️ Doing...</span>
+                      <button (click)="completeAppointment(apt.id)"
+                        class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+                        DONE
+                      </button>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <button *ngIf="apt.status === 'WAITING'" (click)="clearAppointment(apt.id)"
+                  class="w-full mt-2 bg-red-900/10 border border-red-900/20 text-red-500 font-black uppercase tracking-widest text-[9px] px-3 py-2 rounded-lg hover:bg-red-900/30 transition-all text-center">
+                  Cancel Appointment
+                </button>
+              </div>
+
             </div>
           </div>
         </section>
@@ -534,6 +571,18 @@ export class BarberDashboard implements OnInit {
   deleteService(id: number) {
     this.catalogService.deleteService(id).subscribe(() => {
       this.loadServices();
+    });
+  }
+  // 🔥 Zid had 2 méthodes l-jdad:
+  startItem(itemId: number) {
+    this.appointmentService.startItem(itemId).subscribe(() => {
+      this.loadQueue();
+    });
+  }
+
+  completeItem(itemId: number) {
+    this.appointmentService.completeItem(itemId).subscribe(() => {
+      this.loadQueue();
     });
   }
 }
