@@ -107,4 +107,11 @@ public class AppointmentController {
         appointmentService.completeSingleService(itemId);
         return ResponseEntity.ok().build();
     }
+
+    // 🔥 L-Endpoint li kiy-jbed l-Requests dyal l-client li m-connecté daba
+    @GetMapping("/client/my-requests")
+    public ResponseEntity<List<AppointmentResponseDTO>> getMyRequests(@AuthenticationPrincipal UserPrincipal currentUser) {
+        // Kan-jbdou l-ID dyal l-klyan mn Token u kan-siftouh l-Service
+        return ResponseEntity.ok(appointmentService.getClientRequests(currentUser.getId()));
+    }
 }

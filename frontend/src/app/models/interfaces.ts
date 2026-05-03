@@ -1,5 +1,6 @@
 export interface AppointmentResponseDTO {
   id: number;
+  firstName:string;
   barberId: number;
   clientId:number;
   clientName: string;

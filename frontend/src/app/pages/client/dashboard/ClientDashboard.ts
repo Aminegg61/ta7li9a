@@ -46,9 +46,14 @@ import { AuthService } from '../../../services/auth';
             <h2 class="font-black text-lg uppercase tracking-tight italic">Menu</h2>
             <button (click)="drawerOpen = false" class="text-neutral-500 hover:text-white">✕</button>
           </div>
-          <div class="p-4 flex-1">
+          <div class="p-4 flex-1 space-y-2"> <!-- Zedt space-y-2 hna bach y-tferqou -->
             <button (click)="openSearchModal()" class="w-full text-left px-4 py-3 bg-neutral-950 hover:bg-neutral-800 rounded-xl font-bold transition-all text-sm flex items-center gap-3">
               <span>🔍</span> Search All Barbers
+            </button>
+            
+            <!-- 🔥 BOUTON JDIDA DYAL REQUESTS 🔥 -->
+            <button (click)="openRequestsModal()" class="w-full text-left px-4 py-3 bg-neutral-950 hover:bg-neutral-800 rounded-xl font-bold transition-all text-sm flex items-center gap-3 border border-neutral-800/50">
+              <span>📄</span> My Demand History
             </button>
           </div>
         </div>
@@ -272,7 +277,67 @@ import { AuthService } from '../../../services/auth';
           </div>
         </div>
       </div>
+    <!-- 🔥 MY REQUESTS MODAL 🔥 -->
+      <div *ngIf="isRequestsModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="closeRequestsModal()"></div>
+        <div class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]">
+          
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-black italic uppercase tracking-tighter">My Requests</h2>
+            <button (click)="closeRequestsModal()" class="p-2 text-neutral-500 hover:text-white rounded-full bg-neutral-950 border border-neutral-800 transition-colors">✕</button>
+          </div>
 
+          <!-- TABS (Tailwind Style) -->
+          <div class="flex bg-neutral-950 p-1 rounded-xl mb-4 border border-neutral-800 relative">
+            <button (click)="setActiveRequestsTab('ACCEPTED')" 
+                    class="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
+                    [ngClass]="activeRequestsTab === 'ACCEPTED' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-400'">
+              Accepted
+            </button>
+            <button (click)="setActiveRequestsTab('PENDING')" 
+                    class="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
+                    [ngClass]="activeRequestsTab === 'PENDING' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-400'">
+              Pending
+            </button>
+            <button (click)="setActiveRequestsTab('REJECTED')" 
+                    class="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
+                    [ngClass]="activeRequestsTab === 'REJECTED' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-400'">
+              Rejected
+            </button>
+          </div>
+
+          <!-- LISTA DYAL REQUESTS -->
+          <div class="overflow-y-auto flex-1 pr-2 -mr-2 space-y-3">
+            <div *ngIf="filteredRequests.length === 0" class="text-center p-6 text-neutral-500 font-bold text-xs mt-4 bg-neutral-950/50 rounded-2xl border border-neutral-800/50 dashed">
+              No requests found in this section.
+            </div>
+            
+            <div *ngFor="let req of filteredRequests" class="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 flex justify-between items-center group hover:border-neutral-700 transition-colors">
+              <div>
+                <h4 class="font-black text-sm uppercase text-white">{{ req.firstName || 'Barber' }}</h4>
+                <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest mt-1">
+                  <!-- Ila 3ndu list d services, afichihom, sinon dir default text -->
+                  <ng-container *ngIf="req.serviceNames && req.serviceNames.length > 0; else noSrv">
+                    {{ req.serviceNames.join(' + ') }}
+                  </ng-container>
+                  <ng-template #noSrv>BARBER REQUEST</ng-template>
+                </p>
+              </div>
+              
+              <!-- THE BADGE -->
+              <span class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                    [ngClass]="{
+                      'bg-green-500/10 text-green-500 border border-green-500/20': activeRequestsTab === 'ACCEPTED',
+                      'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20': activeRequestsTab === 'PENDING',
+                      'bg-red-500/10 text-red-500 border border-red-500/20': activeRequestsTab === 'REJECTED'
+                    }">
+                {{ getBadgeText(req.status) }}
+              </span>
+            </div>
+          </div>
+          
+        </div>
+      </div>
     </div>
   `
 })
@@ -287,6 +352,9 @@ export class ClientDashboard implements OnInit, OnDestroy {
   
   searchModalOpen = false;
   searchQuery = '';
+  isRequestsModalOpen = false;
+  activeRequestsTab: 'ACCEPTED' | 'PENDING' | 'REJECTED' = 'ACCEPTED';
+  myRequests: AppointmentResponseDTO[] = [];
   searchResults: BarberSearchDto[] = [];
 
   serviceSelectOpen = false;
@@ -323,7 +391,56 @@ export class ClientDashboard implements OnInit, OnDestroy {
        this.startWaitTimer();
 
   }
+  // 🔥 MÉTHODES DYAL MY REQUESTS 🔥
+  loadMyRequests() {
+    // ⚠️ T2ekked blli zedti getMyRequests() f AppointmentService kima chre7t lik qbel
+    this.appointmentService.getMyRequests().subscribe({
+      next: (data) => {
+        this.myRequests = data;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Erreur f tahmil requests', err)
+    });
+  }
 
+  openRequestsModal() {
+    this.drawerOpen = false; // Sed l-menu l-kbir
+    this.isRequestsModalOpen = true; // 7el l-modal d requests
+    this.loadMyRequests(); // Jib data mn l-backend
+  }
+
+  closeRequestsModal() {
+    this.isRequestsModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  setActiveRequestsTab(tab: 'ACCEPTED' | 'PENDING' | 'REJECTED') {
+    this.activeRequestsTab = tab;
+  }
+
+  get filteredRequests() {
+    return this.myRequests.filter(req => {
+      if (this.activeRequestsTab === 'ACCEPTED') {
+        return ['WAITING', 'IN_PROGRESS', 'COMPLETED'].includes(req.status);
+      } else if (this.activeRequestsTab === 'PENDING') {
+        return req.status === 'PENDING';
+      } else if (this.activeRequestsTab === 'REJECTED') {
+        return req.status === 'CANCELLED';
+      }
+      return false;
+    });
+  }
+
+  getBadgeText(status: string): string {
+    switch (status) {
+      case 'IN_PROGRESS': return 'IN CHAIR';
+      case 'WAITING': return 'ACCEPTED';
+      case 'COMPLETED': return 'DONE';
+      case 'PENDING': return 'PENDING';
+      case 'CANCELLED': return 'REJECTED';
+      default: return status;
+    }
+  }
   initUserWebSocket() {
     if (this.currentUser && this.currentUser.id) {
       // Subscribe l l-topic dyal had l-user b-dabt

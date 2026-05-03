@@ -270,9 +270,9 @@ public class AppointmentService {
     private AppointmentResponseDTO mapToResponseDTO(AppointmentEntity entity) {
         AppointmentResponseDTO dto = new AppointmentResponseDTO();
         dto.setId(entity.getId());
-        
         if (entity.getCoiffeur() != null) {
             dto.setBarberId(entity.getCoiffeur().getId());
+            dto.setFirstName(entity.getCoiffeur().getFirstName());
         }
         // Logic dyal s-smiya: User official wala Manual
         if (entity.getClient() != null) {
@@ -632,6 +632,17 @@ public class AppointmentService {
             }
         }
     }
-    
-    
+    // 🔥 Jib Requests dyal l-Client (Ghir dyal 24 sa3a li fatet)
+    public List<AppointmentResponseDTO> getClientRequests(Long clientId) {
+        
+        // 1. 7seb l-waqt dyal l-bare7 f nafs l-weqt (Now - 24 hours)
+        LocalDateTime twentyFourHoursAgo = LocalDateTime.now().minusHours(24);
+
+        // 2. Sifet l-waqt l-Base de données bach t-jib ghir l-jdid
+        return appointmentRepository.findByClientIdAndCreatedAtAfterOrderByIdDesc(clientId, twentyFourHoursAgo)
+                .stream()
+                .map(this::mapToResponseDTO)
+                .toList();
+    }
+
 }

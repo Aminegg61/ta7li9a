@@ -52,4 +52,7 @@ export class AppointmentService {
   completeItem(itemId: number) {
     return this.http.put(`${this.baseUrl}/items/${itemId}/complete`, {});
   }
+  getMyRequests(): Observable<AppointmentResponseDTO[]> {
+    return this.http.get<AppointmentResponseDTO[]>(`${this.baseUrl}/client/my-requests`);
+  }
 }

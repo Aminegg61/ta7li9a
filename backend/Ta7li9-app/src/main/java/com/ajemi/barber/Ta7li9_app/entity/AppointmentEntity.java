@@ -1,8 +1,8 @@
 package com.ajemi.barber.Ta7li9_app.entity;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,8 +11,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -66,4 +64,6 @@ public class AppointmentEntity {
 
     // 🔥 Zid hada: L-waqt l-7aqiqi li khdaw les services (b minutes)
     private Integer actualDuration;
+    @Column(updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

@@ -15,7 +15,6 @@ import com.ajemi.barber.Ta7li9_app.entity.AppointmentEntity;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentStatus;
 import com.ajemi.barber.Ta7li9_app.entity.BarberStatus;
 import com.ajemi.barber.Ta7li9_app.entity.FollowedBarber;
-import com.ajemi.barber.Ta7li9_app.entity.ServiceEntity;
 import com.ajemi.barber.Ta7li9_app.entity.User;
 import com.ajemi.barber.Ta7li9_app.repository.AppointmentRepository;
 import com.ajemi.barber.Ta7li9_app.repository.FollowedRepository;
