@@ -34,4 +34,6 @@ public class AppointmentItem {
     
     // Ch7al khda dyal l-waqt b d-dqiqa
     private Integer actualDuration; 
+
+    private Integer estimatedDuration;
 }

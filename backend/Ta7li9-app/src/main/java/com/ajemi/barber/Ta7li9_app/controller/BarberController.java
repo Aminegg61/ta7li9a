@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,5 +34,19 @@ public class BarberController {
         String status = barberService.getBarberStatus(currentUser.getId());
         return ResponseEntity.ok(status);
     }    
+
+    @PostMapping("/pause")
+    public ResponseEntity<?> pauseWork(@AuthenticationPrincipal UserPrincipal currentUser) {
+        // Kan-3iyytou l-Service li qaddina qbila
+        barberService.pauseWork(currentUser.getId());
+        return ResponseEntity.ok().body("{\"message\": \"Coiffeur is now ON BREAK\"}");
+    }
+
+    @PostMapping("/resume")
+    public ResponseEntity<?> resumeWork(@AuthenticationPrincipal UserPrincipal currentUser) {
+        // Kan-3iyytou l-Service
+        barberService.resumeWork(currentUser.getId());
+        return ResponseEntity.ok().body("{\"message\": \"Coiffeur is BACK TO WORK\"}");
+    }
 
 }

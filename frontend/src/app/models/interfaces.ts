@@ -36,7 +36,7 @@ export interface BarberSearchDto {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE';
+  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE' | 'ON_BREAK';
   favorite: boolean;
   estimatedWaitTime: number;
   inQueue: boolean;
@@ -51,5 +51,5 @@ export interface User {
   email: string;
   role: string;
   phoneNumber: string;
-  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE';
+  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE'| 'ON_BREAK';
 }

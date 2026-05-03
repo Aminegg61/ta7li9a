@@ -1,5 +1,6 @@
 package com.ajemi.barber.Ta7li9_app.entity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -46,5 +47,8 @@ public class User {
 
     //7alla dyal lma7all
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private BarberStatus currentStatus = BarberStatus.OFFLINE;
+    @Column(name = "last_pause_time")
+    private LocalDateTime lastPauseTime;
 }

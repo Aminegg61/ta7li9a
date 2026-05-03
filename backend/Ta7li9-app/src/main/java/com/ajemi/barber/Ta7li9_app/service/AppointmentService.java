@@ -113,6 +113,30 @@ public class AppointmentService {
             item.setAppointment(appointment);
             item.setService(srv);
             item.setStatus("PENDING"); 
+
+            // 👇 L-QALEB J-JDID D-HISTORY 👇
+            if (client != null) {
+// ✅ Daba ghadi y-nqqez ga3 dok li fihom null, u y-jib akher wa7ed m-sajjel fih l-weqt s-s7i7!
+                java.util.Optional<AppointmentItem> lastTime = appointmentItemRepository
+                    .findFirstByAppointmentClientIdAndServiceIdAndStatusAndActualDurationIsNotNullOrderByEndTimeDesc(
+                        client.getId(), 
+                        srv.getId(), 
+                        "COMPLETED"
+                    );
+
+                if (lastTime.isPresent() && lastTime.get().getActualDuration() != null) {
+                    // ✅ Lqina history: N-khdmou b l-waqt l-m-personnalisé dyalo
+                    item.setEstimatedDuration(lastTime.get().getActualDuration());
+                } else {
+                    // ❌ Awel merra aw ma-3ndouch history: N-3tiweh Default d l-Coiffeur
+                    item.setEstimatedDuration(srv.getDuration());
+                }
+            } else {
+                // ❌ Ila kan Guest (Coiffeur dakhlou b yddou bla compte): N-3tiweh Default
+                item.setEstimatedDuration(srv.getDuration());
+            }
+            // 👆 SALA L-QALEB 👆
+
             items.add(item);
         }
         
@@ -144,8 +168,14 @@ public class AppointmentService {
 
     // Helper method bach mat-3awdch l-code dyal calculation
     private void setupQueueTimes(AppointmentEntity app, Long coiffeurId, List<Long> serviceIds) {
-        List<ServiceEntity> services = serviceRepository.findAllById(serviceIds);
-        int totalDuration = services.stream().mapToInt(ServiceEntity::getDuration).sum();
+        
+        // 🔥 L-QALEB: Blast ma n-jibou l-Default, kan-jem3ou 'estimatedDuration' dyal les items 
+        // li 3ad 3mmernaha f l-for loop qbel ma n-3iytou l-had l-fonction
+        int totalDuration = app.getAppointmentItems().stream()
+                .mapToInt(item -> item.getEstimatedDuration() != null 
+                                  ? item.getEstimatedDuration() 
+                                  : item.getService().getDuration())
+                .sum();
 
         // 1. Filter: ghir WAITING u IN_PROGRESS
         List<AppointmentStatus> activeStatuses = List.of(AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS);
@@ -168,7 +198,7 @@ public class AppointmentService {
         }
 
         app.setStartTime(startTime);
-        app.setEndTime(startTime.plusMinutes(totalDuration));
+        app.setEndTime(startTime.plusMinutes(totalDuration)); // ✅ Hna targetTime ghadi y-koun m-gadd!
     }
 
 @Transactional
@@ -185,13 +215,15 @@ public class AppointmentService {
         for (AppointmentEntity other : otherRequests) {
             if (!other.getId().equals(appointmentId)) {
                 other.setStatus(AppointmentStatus.CANCELLED);
+                other.getAppointmentItems().forEach(item -> item.setStatus("CANCELLED"));
                 messagingTemplate.convertAndSend("/topic/queue/" + other.getCoiffeur().getId(), "UPDATE_QUEUE");
             }
         }
 
         // 2. 🔥 SETUP WAITING & TIME (Hna fine khass t-zid l-khidma)
         app.setStatus(AppointmentStatus.WAITING);
-        
+        // 🔥 L-JDID 2: N-reddou les services dyal l-Rendez-vous l-maqboul l WAITING
+        app.getAppointmentItems().forEach(item -> item.setStatus("WAITING"));
         // 👈 Kan-jbdou ID dyal s-service mn wst l-Item
         List<Long> serviceIds = app.getAppointmentItems().stream()
                                    .map(item -> item.getService().getId())
@@ -202,7 +234,7 @@ public class AppointmentService {
 
         // 3. Save everything
         appointmentRepository.saveAll(otherRequests);
-        AppointmentEntity saved = appointmentRepository.save(app);
+        AppointmentEntity saved = appointmentRepository.saveAndFlush(app);
 
         // 4. Notify l-Client u l-Coiffeur
         messagingTemplate.convertAndSend("/topic/user/" + clientId, "QUEUE_UPDATED");
@@ -210,6 +242,7 @@ public class AppointmentService {
 
         return mapToResponseDTO(saved);
     }
+
     @Transactional
     public void rejectAppointment(Long appointmentId,UserPrincipal currentUser ) {
         AppointmentEntity app = appointmentRepository.findById(appointmentId)
@@ -225,6 +258,7 @@ public class AppointmentService {
             throw new RuntimeException("Had l-appointment machi dyalk!");
         }
         app.setStatus(AppointmentStatus.CANCELLED);
+        app.getAppointmentItems().forEach(item -> item.setStatus("CANCELLED"));
         appointmentRepository.save(app);
         
         messagingTemplate.convertAndSend("/topic/queue/" + app.getCoiffeur().getId(), "UPDATE_QUEUE");
@@ -293,9 +327,11 @@ public class AppointmentService {
             // 2. Start time d s-sayed jdid = End time d s-sayed li qbel mennu
             app.setStartTime(currentPointer);
             
-        // 👈 Kan-jbdou Duration d s-service mn wst l-Item
-        int duration = app.getAppointmentItems().stream()
-                          .mapToInt(item -> item.getService().getDuration())
+//          🔥 L-FIX: Kan-jbdou estimatedDuration l-m-personnalisée blast l-Default
+            int duration = app.getAppointmentItems().stream()
+                          .mapToInt(item -> item.getEstimatedDuration() != null 
+                                            ? item.getEstimatedDuration() 
+                                            : item.getService().getDuration())
                           .sum();
             app.setEndTime(currentPointer.plusMinutes(duration));
             
@@ -305,22 +341,35 @@ public class AppointmentService {
         appointmentRepository.saveAll(futureApps);
     }
     //button start mn yabda
-@Transactional
+    @Transactional
     public AppointmentResponseDTO startAppointment(Long appointmentId) {
         AppointmentEntity app = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment malqinahch"));
                 
         app.setStatus(AppointmentStatus.IN_PROGRESS);
-        
-        // 🔥 Zid had l-log bach t-choufi f l-console wach l-waqt t-set-a s7i7
         LocalDateTime now = LocalDateTime.now();
         System.out.println("DEBUG: Setting StartTime to: " + now);
         app.setStartTime(now); 
-
-        // 🔥 Ista3mly saveAndFlush bach t-sauvaw l-updates deghya
-        AppointmentEntity savedApp = appointmentRepository.saveAndFlush(app);
+        // 🔥 L-FIX 1: N-7esbou total duration b 'estimatedDuration'
+        int totalDuration = app.getAppointmentItems().stream()
+                .mapToInt(item -> item.getEstimatedDuration() != null 
+                                  ? item.getEstimatedDuration() 
+                                  : item.getService().getDuration())
+                .sum();
         
-        // Notification real-time (Darouri bach l-client y-chouf l-bedil)
+        // 🔥 L-FIX 2: N-def3ou l-endTime l-gddam (now + duration) bach ma-y-deye3ch l-waqt!
+        LocalDateTime newEndTime = now.plusMinutes(totalDuration);
+        app.setEndTime(newEndTime);
+        // 🔥 L-JDID: Bda ga3 les services f dqa wa7da
+        for (AppointmentItem item : app.getAppointmentItems()) {
+            if ("WAITING".equals(item.getStatus())|| "PENDING".equals(item.getStatus())) {
+                item.setStatus("IN_PROGRESS");
+                //item.setStartTime(now);
+            }
+        }
+
+        AppointmentEntity savedApp = appointmentRepository.saveAndFlush(app);
+        updateFutureAppointments(app.getCoiffeur().getId(), newEndTime);
         messagingTemplate.convertAndSend("/topic/queue/" + app.getCoiffeur().getId(), "UPDATE_QUEUE");
         
         return mapToResponseDTO(savedApp);
@@ -334,40 +383,77 @@ public class AppointmentService {
                 
         app.setStatus(AppointmentStatus.COMPLETED);
         LocalDateTime now = LocalDateTime.now();
-        app.setEndTime(now); // Salla dba
-        // 👇 ZID HADI 1: N-7sbou ch7al d l-weqt khda b-s-sa7 w n-sajloha f DB
-        if (app.getStartTime() != null) {
-            long minutes = Duration.between(app.getStartTime(), now).toMinutes();
-            app.setActualDuration((int) minutes);
+        app.setEndTime(now); 
+
+        // 1. N-sajjlou l-waqt t-total dyal l-Rendez-vous
+        if (app.getStartTime() != null && app.getClient() != null)  {
+            long seconds = Duration.between(app.getStartTime(), now).getSeconds();
+            int minutes = (int) Math.ceil(seconds / 60.0);
+            app.setActualDuration(minutes);
+        }
+
+        // 🔥 L-JDID: N-7esbou chhal mn service baqi IN_PROGRESS wla PENDING
+        List<AppointmentItem> remainingItems = app.getAppointmentItems().stream()
+                .filter(item -> !"COMPLETED".equals(item.getStatus()))
+                .toList();
+
+        // Ila kan baqi GHIR WA7ED, ya3ni rah hwa li kan khddam fih -> N-trackiw weqto
+        boolean saveTime = (remainingItems.size() == 1) && (app.getClient() != null);
+
+        // 👇 L-QALEB D-RELATIVE TIME 👇
+        // N-qellbou 3la mnin ghadi n-bdaw l-7ssab (Reference Time)
+        LocalDateTime referenceTime = app.getStartTime(); // L-Asl howa bdayat l-Rendez-vous
+        
+        if (saveTime) {
+            // N-choufou wach sala chi service 9bel mn hada
+            java.util.Optional<AppointmentItem> lastCompletedItem = app.getAppointmentItems().stream()
+                    .filter(i -> "COMPLETED".equals(i.getStatus()) && i.getEndTime() != null)
+                    .max(java.util.Comparator.comparing(AppointmentItem::getEndTime));
+            
+            if (lastCompletedItem.isPresent()) {
+                referenceTime = lastCompletedItem.get().getEndTime(); // Ila lqa chi service sala, y-bda mn weqto!
+            }
+        }
+        // 👆 SALA L-QALEB 👆
+
+        // 2. N-saliw les services li bqaw
+        for (AppointmentItem item : remainingItems) {
+            item.setStatus("COMPLETED");
+            item.setEndTime(now);
+            
+            // 🔥 Kan-7sbou b 'referenceTime' blast 'item.getStartTime()'
+            if (saveTime && referenceTime != null) {
+                long itemSeconds = Duration.between(referenceTime, now).getSeconds();
+                int duration = (int) Math.ceil(itemSeconds / 60.0);
+                item.setActualDuration(duration);
+            }
         }
 
         appointmentRepository.saveAndFlush(app);
         
-        // 👇 ZID HADI 2: N-rttbou l-waqt dyal n-nas li kiy-tsennaw mour had l-client
+        // 3. N-rttbou l-waqt dyal n-nas li kiy-tsennaw mour had l-client
         updateFutureAppointments(app.getCoiffeur().getId(), now);
-        // 👇 3. 🔥 HNA ZIDNA L-LOGIC DYAL STATUS L-JDIDA 🔥 👇
-        // N-checkiw wach l-coiffeur baqi khddam f chi wa7ed khor (IN_PROGRESS)
+
+        // 4. N-checkiw wach l-coiffeur baqi khddam f chi wa7ed khor
         Optional<AppointmentEntity> baqiKhdam = appointmentRepository
                 .findTopByCoiffeurIdAndStatusInOrderByEndTimeDesc(
                     app.getCoiffeur().getId(), 
                     List.of(AppointmentStatus.IN_PROGRESS)
                 );
 
-        // Ila l-korsi khawi daba, u l-coiffeur kan status dyalo FULL, n-reddouh ACTIVE bo7dou!
         if (baqiKhdam.isEmpty() && app.getCoiffeur().getCurrentStatus() == BarberStatus.FULL) {
             app.getCoiffeur().setCurrentStatus(BarberStatus.ACTIVE);
             userRepository.save(app.getCoiffeur());
         }
-        // 👆 ========================================= 👆
-    if (app.getClient() != null) {
-            System.out.println("Sending signal to user: " + app.getClient().getId()); // <--- CHOUF WACH KAT-TLA3 HADI
+        
+        // 5. Notifications
+        if (app.getClient() != null) {
             String clientTopic = "/topic/user/" + app.getClient().getId();
             messagingTemplate.convertAndSend(clientTopic, "QUEUE_UPDATED");
-        } else {
-            System.out.println("Client is NULL - No signal sent"); // <--- ILA TLA3AT HADI, RA L-ENTITY MA-FIHACH CLIENT
-        }
+        } 
         messagingTemplate.convertAndSend("/topic/queue/" + app.getCoiffeur().getId(), "UPDATE_QUEUE");
-        return mapToResponseDTO(appointmentRepository.save(app));
+        
+        return mapToResponseDTO(app);
     }
     // had queeue li ychofha coiffeur la2i7at l2intidar 
     public List<AppointmentResponseDTO> getTodayQueue(Long coiffeurId) {
@@ -431,6 +517,7 @@ public class AppointmentService {
 
         // 2. Beddel Status l-CANCELLED
         app.setStatus(AppointmentStatus.CANCELLED);
+        app.getAppointmentItems().forEach(item -> item.setStatus("CANCELLED"));
         appointmentRepository.saveAndFlush(app);
         
         // 3. Jib l-waqt mnin ghadi t-bda n-nouba jdida
@@ -481,34 +568,70 @@ public class AppointmentService {
     }
 
     // 🔥 Button Done l-kola Service bo7dou
+
     @Transactional
     public void completeSingleService(Long itemId) {
         AppointmentItem item = appointmentItemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item malqinahch"));
 
-        item.setStatus("COMPLETED");
         LocalDateTime now = LocalDateTime.now();
-        item.setEndTime(now); // Waqt nihayat s-service
-
-        // 7seb l-waqt l-7aqiqi d had s-service bo7dou
-        if (item.getStartTime() != null) {
-            long minutes = Duration.between(item.getStartTime(), now).toMinutes();
-            item.setActualDuration((int) minutes);
-        }
-        appointmentItemRepository.save(item);
-
         AppointmentEntity app = item.getAppointment();
+        
+        // 👇 L-QALEB D-DAKA2 S-SINA3I 👇
+        // 1. N-qellbou 3la akher service sala f had l-Rendez-vous (b l-waqt)
+        java.util.Optional<AppointmentItem> lastCompletedItem = app.getAppointmentItems().stream()
+                .filter(i -> "COMPLETED".equals(i.getStatus()) && i.getEndTime() != null)
+                .max(java.util.Comparator.comparing(AppointmentItem::getEndTime));
+
+        // 2. N-7edou mnin ghadi n-bdaw l-7ssab (Reference Time)
+        LocalDateTime referenceTime;
+        if (lastCompletedItem.isPresent()) {
+            // Ila dejà sala chi service qbel, n-bdaw l-7ssab mnin sala dak s-service
+            referenceTime = lastCompletedItem.get().getEndTime();
+        } else {
+            // Ila hada howa awel service kiy-sali, n-bdaw l-7ssab mn bdayat l-Rendez-vous
+            referenceTime = app.getStartTime();
+        }
+
+        // 3. N-7sbou l-waqt d had s-service b-dabt
+        if (referenceTime != null && app.getClient() != null) {
+            long seconds = java.time.Duration.between(referenceTime, now).getSeconds();
+            int minutes = (int) Math.ceil(seconds / 60.0);
+            item.setActualDuration(minutes);
+        }
+        // 👆 SALA L-QALEB 👆
+
+        item.setStatus("COMPLETED");
+        item.setEndTime(now); 
+        appointmentItemRepository.save(item);
 
         // Daba checki: Wach l-coiffeur salla ga3 les services dyal had l-klyan?
         boolean allDone = app.getAppointmentItems().stream()
                 .allMatch(i -> "COMPLETED".equals(i.getStatus()));
 
         if (allDone) {
-            // 🎉 Ila salaw kamlin, 3iyyet l-completeAppointment l-qdima (li katti-sali l-Rendez-vous u katti-qadd n-nouba)
             this.completeAppointment(app.getId());
         } else {
-            // Ila baqi lih chi service akhor (maslan salla 7sana u baqya L7ya)
+            // N-qaddou weqt l-magana l-nas li kiy-tsennaw mourah
+            int weqtLiBqa = app.getAppointmentItems().stream()
+                    .filter(i -> !"COMPLETED".equals(i.getStatus()))
+                    .mapToInt(i -> i.getEstimatedDuration() != null 
+                                   ? i.getEstimatedDuration() 
+                                   : i.getService().getDuration())
+                    .sum();
+            
+            LocalDateTime expectedEnd = LocalDateTime.now().plusMinutes(weqtLiBqa);
+            app.setEndTime(expectedEnd);
+            appointmentRepository.saveAndFlush(app); 
+
+            updateFutureAppointments(app.getCoiffeur().getId(), expectedEnd);
+
             messagingTemplate.convertAndSend("/topic/queue/" + app.getCoiffeur().getId(), "UPDATE_QUEUE");
+            if (app.getClient() != null) {
+                messagingTemplate.convertAndSend("/topic/user/" + app.getClient().getId(), "QUEUE_UPDATED");
+            }
         }
     }
+    
+    
 }

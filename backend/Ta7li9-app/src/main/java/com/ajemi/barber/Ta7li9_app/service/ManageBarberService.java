@@ -13,6 +13,7 @@ import com.ajemi.barber.Ta7li9_app.dto.BarberSearchDto;
 import com.ajemi.barber.Ta7li9_app.dto.QueueInfoDto;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentEntity;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentStatus;
+import com.ajemi.barber.Ta7li9_app.entity.BarberStatus;
 import com.ajemi.barber.Ta7li9_app.entity.FollowedBarber;
 import com.ajemi.barber.Ta7li9_app.entity.ServiceEntity;
 import com.ajemi.barber.Ta7li9_app.entity.User;
@@ -150,39 +151,52 @@ public class ManageBarberService {
         List<AppointmentEntity> queue =
             appointmentRepository.findByCoiffeurIdAndStatusInOrderByStartTimeAsc(barberId, statuses);
 
+        // 🔥 1. Jbed l-Coiffeur bach n-choufou wach m-pawzi wla la
+        User barber = userRepository.findById(barberId).orElse(null);
+        
+        // Sa3a d-daba par defaut
+        LocalDateTime referenceTime = LocalDateTime.now(); 
+
+        // 🔥 2. L-QALEB: Ila kan ON_BREAK, jammed l-waqt f sa3a fach t-pawza!
+        if (barber != null && barber.getCurrentStatus() == BarberStatus.ON_BREAK && barber.getLastPauseTime() != null) {
+            referenceTime = barber.getLastPauseTime(); // Waqt m-bloki ❄️
+        }
+
         int totalMinutes = 0;
         int position = 0;
         boolean inQueue = false;
 
-        LocalDateTime now = LocalDateTime.now();
-
         for (int i = 0; i < queue.size(); i++) {
             AppointmentEntity appointment = queue.get(i);
 
-            // ⛔ 1. Melli n-lqaw l-klyan, n-chedou r9mo u N-7BSSOU KOLCHI!
             if (appointment.getClient() != null && appointment.getClient().getId().equals(clientId)) {
                 inQueue = true;
-                position = i; // 👈 7iyedna +1 bach t-3tik 0 ila knti nta l-lowel
+                position = i; 
                 break; 
             }
 
-            // ⏳ 2. Ila machi huwa, n-zidou weqt l-intidar
             if (appointment.getStatus() == AppointmentStatus.IN_PROGRESS) {
-                long remaining = Duration.between(now, appointment.getEndTime()).toMinutes();
+                // ✅ N-7sbou b t-twani (Seconds)
+                long seconds = Duration.between(referenceTime, appointment.getEndTime()).getSeconds();
+                
+                // ✅ N-qsmou 3la 60 w n-dirou Arrondi l-foq (Math.ceil)
+                long remaining = (long) Math.ceil(seconds / 60.0);
+                
                 if (remaining > 0) {
                     totalMinutes += remaining;
                 }
-            } else {
+            }else {
+                // 🔥 L-FIX: N-7esbou 'duration' b 'estimatedDuration' l-m-personnalisée
                 int duration = appointment.getAppointmentItems()
                         .stream()
-                        .mapToInt(item -> item.getService().getDuration())
+                        .mapToInt(item -> item.getEstimatedDuration() != null 
+                                          ? item.getEstimatedDuration() 
+                                          : item.getService().getDuration())
                         .sum();
                 totalMinutes += duration;
             }
         }
 
-        // 3. Ila l-klyan baqi ma-chadch n-nouba (malqinahch), 
-        // L-Position dyalo ghat-koun hiya t-total dyal n-nas li f n-nouba + 1 (awla ghir size)
         if (!inQueue) {
             position = queue.size(); 
         }

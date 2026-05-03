@@ -123,82 +123,108 @@ import { ChangeDetectorRef } from '@angular/core';
               No appointments in the queue.
             </div>
 
-<div *ngFor="let apt of activeQueue; let i = index; trackBy: trackByAptId" 
+            <!-- L-KARTA DYAL N-NOUBA (SMART UX: 1 Service vs Multi Services) -->
+            <div *ngFor="let apt of activeQueue; let i = index; trackBy: trackByAptId" 
                  class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 transition-all flex flex-col"
                  [ngClass]="{'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.15)]': i === 0}">
               
+              <!-- 🔥 STER L-FOQANI: Smiya + Boutonat 🔥 -->
               <div class="flex items-center justify-between w-full">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full flex items-center justify-center font-black text-xs"
+                
+                <!-- L-Ysser: Avatar + Smiya -->
+                <div class="flex items-center gap-3 overflow-hidden">
+                  <div class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-black text-xs"
                        [ngClass]="i === 0 ? 'bg-yellow-500 text-black shadow-md shadow-yellow-500/20' : 'bg-neutral-950 text-neutral-500 border border-neutral-800'">
                     #{{i + 1}}
                   </div>
-                  <div>
-                    <h3 class="font-black uppercase tracking-tighter" [ngClass]="i === 0 ? 'text-white text-base' : 'text-neutral-300 text-sm'">
+                  <div class="truncate">
+                    <h3 class="font-black uppercase tracking-tighter truncate" [ngClass]="i === 0 ? 'text-white text-base' : 'text-neutral-300 text-sm'">
                       {{ apt.clientName }}
                     </h3>
-                    <p class="text-[10px] font-bold text-neutral-500 mt-0.5" *ngIf="i !== 0">
+                    <p class="text-[10px] font-bold text-neutral-500 mt-0.5 truncate" *ngIf="i !== 0">
                       {{ apt.serviceNames.join(', ') }} • <span class="text-yellow-500">{{ apt.totalDuration }} min</span>
                     </p>
                   </div>
                 </div>
 
-                <button *ngIf="apt.status === 'WAITING' && i !== 0" (click)="clearAppointment(apt.id)" title="Remove from queue"
-                  class="w-8 h-8 flex items-center justify-center bg-red-900/20 text-red-500 rounded-lg hover:bg-red-900/40 transition-all text-xs">
-                  ✕
-                </button>
-              </div>
-
-              <div *ngIf="i === 0" class="mt-3 space-y-2 border-t border-neutral-800/50 pt-3">
-                
-                <ng-container *ngIf="apt.clientId">
-                  <p class="text-[9px] text-yellow-500 font-black uppercase tracking-widest mb-1.5 animate-pulse">Services Tracking:</p>
+                <!-- L-Ymen: Boutonat (START, DONE, CLEAR) -->
+                <div class="flex items-center gap-2 shrink-0 ml-2">
                   
-                  <div *ngFor="let item of apt.items" class="flex items-center justify-between bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl">
-                    <span class="text-xs font-bold text-white uppercase">{{ item.serviceName }}</span>
-                    
-                    <button *ngIf="item.status === 'PENDING'" (click)="startItem(item.id)"
-                      class="bg-green-500/20 border border-green-500/30 text-green-500 font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-green-500 hover:text-black transition-all">
+                  <!-- 1. JALES (WAITING) -> Dima kiyban START w CANCEL l-foq -->
+                  <ng-container *ngIf="i === 0 && apt.status === 'WAITING'">
+                    <button (click)="startAppointment(apt.id)"
+                      class="bg-green-500 text-black font-black uppercase tracking-widest text-[10px] px-8 py-2.5 rounded-xl hover:bg-green-400 transition-all shadow-[0_0_10px_rgba(34,197,94,0.3)]">
                       START
                     </button>
-                    
-                    <div *ngIf="item.status === 'IN_PROGRESS'" class="flex items-center gap-2">
-                      <span class="text-[9px] font-black text-green-500 animate-pulse uppercase tracking-widest">✂️ Doing...</span>
-                      <button (click)="completeItem(item.id)"
-                        class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]">
-                        DONE
-                      </button>
-                    </div>
-
-                    <span *ngIf="item.status === 'COMPLETED'" class="text-[9px] text-neutral-600 font-black uppercase tracking-widest flex items-center gap-1">
-                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                      Finished
-                    </span>
-                  </div>
-                </ng-container>
-
-                <ng-container *ngIf="!apt.clientId">
-                  <div class="flex items-center justify-between bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl mt-1">
-                    <span class="text-[9px] text-neutral-400 font-black uppercase tracking-widest">Guest Session</span>
-                    
-                    <button *ngIf="apt.status === 'WAITING'" (click)="startAppointment(apt.id)"
-                      class="bg-green-500/20 border border-green-500/30 text-green-500 font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-green-500 hover:text-black transition-all">
-                      START ALL
+                    <button (click)="clearAppointment(apt.id)" title="Cancel"
+                      class="bg-red-900/10 border border-red-900/20 text-red-500 hover:bg-red-900/30 font-black w-9 h-9 flex items-center justify-center rounded-xl transition-all">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
-                    
-                    <div *ngIf="apt.status === 'IN_PROGRESS'" class="flex items-center gap-2">
-                      <span class="text-[9px] font-black text-green-500 animate-pulse uppercase tracking-widest">✂️ Doing...</span>
-                      <button (click)="completeAppointment(apt.id)"
-                        class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg hover:bg-yellow-400 transition-all shadow-[0_0_10px_rgba(234,179,8,0.2)]">
-                        DONE
-                      </button>
-                    </div>
-                  </div>
-                </ng-container>
+                  </ng-container>
 
-                <button *ngIf="apt.status === 'WAITING'" (click)="clearAppointment(apt.id)"
-                  class="w-full mt-2 bg-red-900/10 border border-red-900/20 text-red-500 font-black uppercase tracking-widest text-[9px] px-3 py-2 rounded-lg hover:bg-red-900/30 transition-all text-center">
-                  Cancel Appointment
+                  <!-- 2. SCÉNARIO 1 SERVICE (IN_PROGRESS) -> Kiyban DONE, PAUSE w RESUME -->
+                  <ng-container *ngIf="i === 0 && apt.status === 'IN_PROGRESS' && apt.items.length === 1">
+                    
+                    <!-- ⏸️ PAUSE (Kiyban ila kan l-Coiffeur khddam) -->
+                    <button *ngIf="currentStatus !== 'ON_BREAK'" (click)="pause()" title="Pause Haircut"
+                      class="bg-orange-500/20 text-orange-500 font-black uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl hover:bg-orange-500 hover:text-black transition-all shadow-[0_0_10px_rgba(249,115,22,0.3)]">
+                      ⏸️ PAUSE
+                    </button>
+
+                    <!-- ▶️ RESUME (Kiyban ila kan l-7sana m-pawzya) -->
+                    <button *ngIf="currentStatus === 'ON_BREAK'" (click)="resume()" title="Resume Haircut"
+                      class="bg-blue-500/20 text-blue-500 font-black uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse">
+                      ▶️ RESUME
+                    </button>
+
+                    <!-- ✔ DONE -->
+                    <button (click)="completeItem(apt.items[0].id)"
+                      class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-8 py-2.5 rounded-xl hover:bg-yellow-400 transition-all shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+                      ✔ DONE
+                    </button>
+                  </ng-container>
+
+                  <!-- Bouton Cancel l n-nas lokhrin f n-nouba -->
+                  <button *ngIf="apt.status === 'WAITING' && i !== 0" (click)="clearAppointment(apt.id)" title="Remove"
+                    class="w-8 h-8 flex items-center justify-center bg-red-900/20 text-red-500 rounded-lg hover:bg-red-900/40 transition-all">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+
+                </div>
+              </div>
+
+              <!-- 🔥 3. SCÉNARIO MULTI-SERVICES (IN_PROGRESS w 3ndou 2+ Services) -->
+              <div *ngIf="i === 0 && apt.status === 'IN_PROGRESS' && apt.items.length > 1" class="mt-3 space-y-2 border-t border-neutral-800/50 pt-3">
+                
+                <div class="flex justify-between items-center mb-1.5">
+                  <p class="text-[9px] text-yellow-500 font-black uppercase tracking-widest animate-pulse">Running Services:</p>
+                  
+                  <!-- ⏸️ PAUSE / ▶️ RESUME L-HAD L-KLYAN -->
+                  <div class="flex gap-2">
+                    <button *ngIf="currentStatus !== 'ON_BREAK'" (click)="pause()" class="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-500/10 px-2 py-1 rounded">⏸️ Pause</button>
+                    <button *ngIf="currentStatus === 'ON_BREAK'" (click)="resume()" class="text-[9px] font-black uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2 py-1 rounded animate-pulse">▶️ Resume</button>
+                  </div>
+                </div>
+                
+                <div *ngFor="let item of apt.items" class="flex items-center justify-between bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl">
+                  <span class="text-xs font-bold text-white uppercase">{{ item.serviceName }}</span>
+                  
+                  <!-- Bouton DONE l-kola service -->
+                  <button *ngIf="item.status === 'IN_PROGRESS'" (click)="completeItem(item.id)"
+                    class="bg-yellow-500/20 border border-yellow-500/30 text-yellow-500 font-black uppercase tracking-widest text-[9px] px-4 py-1.5 rounded-lg hover:bg-yellow-500 hover:text-black transition-all">
+                    DONE
+                  </button>
+
+                  <span *ngIf="item.status === 'COMPLETED'" class="text-[9px] text-neutral-600 font-black uppercase tracking-widest flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Finished
+                  </span>
+                </div>
+
+                <!-- Bouton FINISH ALL l-Rendez-vous Kaml -->
+                <button (click)="completeAppointment(apt.id)"
+                  class="w-full mt-3 bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-4 py-3 rounded-xl hover:bg-yellow-400 transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+                  ✔ FINISH ALL SERVICES
                 </button>
               </div>
 
@@ -329,7 +355,7 @@ import { ChangeDetectorRef } from '@angular/core';
   `
 })
 export class BarberDashboard implements OnInit {
-  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE' = 'OFFLINE';
+  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE' | 'ON_BREAK' = 'OFFLINE';
   currentUser: any;
   activeQueue: AppointmentResponseDTO[] = [];
   historyQueue: AppointmentResponseDTO[] = [];
@@ -585,4 +611,28 @@ export class BarberDashboard implements OnInit {
       this.loadQueue();
     });
   }
+  // 🔥 ZID HADO L-TA7T 🔥
+
+  pause() {
+    this.barberService.pauseWork().subscribe({
+      next: () => {
+        console.log("⏸️ Break time!");
+        // N-bdel status 7ta njibo mn l-backend awla n-3ywtou l API
+        this.currentStatus = 'ON_BREAK';
+        this.loadCurrentStatus(); // Bach n-t2ekdou mn DB
+      },
+      error: (err) => console.error("Error pausing:", err)
+    });
+  }
+
+  resume() {
+    this.barberService.resumeWork().subscribe({
+      next: () => {
+        console.log("▶️ Back to work!");
+        this.loadCurrentStatus(); // Hada ghadi y-jib l-status l-jdid (ACTIVE wla FULL)
+      },
+      error: (err) => console.error("Error resuming:", err)
+    });
+  }
+  
 }

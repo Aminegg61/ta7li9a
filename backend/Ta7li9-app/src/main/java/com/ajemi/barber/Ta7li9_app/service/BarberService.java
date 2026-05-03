@@ -1,5 +1,7 @@
 package com.ajemi.barber.Ta7li9_app.service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +54,7 @@ public class BarberService {
     }
 
     // 🔥 Hadi hiyya l-logic li ghat-tla3 l-Client f Front-end
+    // 🔥 Hadi hiyya l-logic li ghat-tla3 l-Client f Front-end
     public String calculateStatusForClient(User barber) {
         
         // 1. L-Coiffeur sed l-ma7al b yddou (Offline)
@@ -62,6 +65,11 @@ public class BarberService {
         // 2. L-Coiffeur dar FULL b yddou (3amar w ma-bghach y-zido nas)
         if (barber.getCurrentStatus() == BarberStatus.FULL) {
             return "FULL"; 
+        }
+
+        // 🔥 L-JDID: L-Coiffeur dar Pause b yddou (Manual Pause)
+        if (barber.getCurrentStatus() == BarberStatus.ON_BREAK) {
+            return "ON_BREAK";
         }
 
         // 3. Ila kan ACTIVE, hna kiy-tdkhl l-logic dyal n-nouba (Auto-Status)
@@ -93,5 +101,52 @@ public class BarberService {
 
         return "CLOSED"; // Par defaut ila wqe3 chi mouchkil
     }
+    @Transactional
+    public void pauseWork(Long coiffeurId) {
+        User coiffeur = userRepository.findById(coiffeurId)
+                .orElseThrow(() -> new RuntimeException("Coiffeur malqinahch"));
+        
+        // Reddo f wqt r-raha f DB
+        coiffeur.setCurrentStatus(BarberStatus.ON_BREAK);
+        coiffeur.setLastPauseTime(LocalDateTime.now()); 
+        userRepository.saveAndFlush(coiffeur);
+        
+        // Sift Update l-Klyan bach l-Magana t-dir Pause w HTML y-tbeddel
+        messagingTemplate.convertAndSend("/topic/queue/" + coiffeurId, "STATUS_CHANGED");
+    }
 
+    @Transactional
+    public void resumeWork(Long coiffeurId) {
+        User coiffeur = userRepository.findById(coiffeurId).orElseThrow();
+        LocalDateTime now = LocalDateTime.now();
+
+        if (coiffeur.getLastPauseTime() != null) {
+            // 🔥 N-7esbou chhal d-twani t-pawza fihom
+            long pauseSeconds = Duration.between(coiffeur.getLastPauseTime(), now).getSeconds();
+            
+            // Jbed l-klyan li f l-korsi (IN_PROGRESS)
+            appointmentRepository.findByCoiffeurIdAndStatusIn(coiffeurId, List.of(AppointmentStatus.IN_PROGRESS))
+                .stream().findFirst().ifPresent(currentApt -> {
+                    
+                    // 1. Zid l-waqt d-Pause f l-endTime d l-Rendez-vous (Bach magana ma-t-khrbqch)
+                    currentApt.setEndTime(currentApt.getEndTime().plusSeconds(pauseSeconds));
+                    
+                    // 🔥 2. L-FIX D-HISTORY: Zid l-waqt d-pause f 'startTime' dyal les services li IN_PROGRESS
+                    // Hakka l-backend ma-ghadich y-7seb l-waqt d-pause f l-history d l-klyan!
+                    currentApt.getAppointmentItems().stream()
+                        .filter(item -> "IN_PROGRESS".equals(item.getStatus()) && item.getStartTime() != null)
+                        .forEach(item -> {
+                            item.setStartTime(item.getStartTime().plusSeconds(pauseSeconds));
+                        });
+                        
+                    appointmentRepository.save(currentApt);
+                });
+        }
+
+        coiffeur.setCurrentStatus(BarberStatus.ACTIVE);
+        coiffeur.setLastPauseTime(null); 
+        userRepository.saveAndFlush(coiffeur);
+        
+        messagingTemplate.convertAndSend("/topic/queue/" + coiffeurId, "STATUS_CHANGED");
+    }
 }

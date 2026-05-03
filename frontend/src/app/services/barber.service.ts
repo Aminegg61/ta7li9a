@@ -42,4 +42,12 @@ export class BarberService {
   toggleFavorite(barberId: number): Observable<void> {
     return this.http.put<void>(`http://localhost:8080/api/barbers/toggle-favorite/${barberId}`, {});
   }
+  pauseWork(): Observable<any> {
+    // T2ekked mn l-URL dyalk wach howa hada (masalan: baseUrl + '/barbers/pause')
+    return this.http.post(`${this.baseUrl}/pause`, {});
+  }
+
+  resumeWork(): Observable<any> {
+    return this.http.post(`${this.baseUrl}/resume`, {});
+  }
 }

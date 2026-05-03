@@ -3,6 +3,6 @@ package com.ajemi.barber.Ta7li9_app.entity;
 public enum BarberStatus {
     ACTIVE,  // 🟢 Khddam
     FULL,    // 🟡 3amer (Toggle manual)
-    OFFLINE  // 🔴 Sād
-    
+    OFFLINE,  // 🔴 Sād
+    ON_BREAK // ⏸️ Pause
 }

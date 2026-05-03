@@ -152,11 +152,11 @@ import { AuthService } from '../../../services/auth';
               </div>
 
 
-           <button *ngIf="barber.currentStatus === 'ACTIVE' && !isAlreadyRequested(barber.id) && !isAcceptedAnywhere()"
-                (click)="openServiceSelection(barber.id)"
-                class="w-full bg-yellow-500 text-black font-black uppercase py-4 rounded-xl hover:bg-yellow-400 mb-2 transition-all">
-          Send a Demand
-        </button>
+              <button *ngIf="(barber.currentStatus === 'ACTIVE' || barber.currentStatus === 'ON_BREAK') && !isAlreadyRequested(barber.id) && !isAcceptedAnywhere()"
+                      (click)="openServiceSelection(barber.id)"
+                      class="w-full bg-yellow-500 text-black font-black uppercase py-4 rounded-xl hover:bg-yellow-400 mb-2 transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+                Send a Demand
+              </button>
 
         <div *ngIf="isAlreadyRequested(barber.id)" 
             class="w-full bg-neutral-900 text-yellow-500/50 py-4 text-center rounded-xl border border-yellow-500/10 mb-2 uppercase font-black text-[10px] tracking-widest">
@@ -195,10 +195,10 @@ import { AuthService } from '../../../services/auth';
           <span class="text-[10px] font-black uppercase italic tracking-tighter">Busy with another barber</span>
         </div>
 
-        <div *ngIf="barber.currentStatus !== 'ACTIVE' && !isAlreadyRequested(barber.id) && !isAcceptedAnywhere()"
-            class="w-full bg-neutral-950 text-neutral-500 text-center font-black uppercase tracking-widest py-4 rounded-xl border border-neutral-800 shadow-inner">
-          Not Available currently
-        </div>
+          <div *ngIf="(barber.currentStatus === 'OFFLINE' || barber.currentStatus === 'FULL') && !isAlreadyRequested(barber.id) && !isAcceptedAnywhere()"
+              class="w-full bg-neutral-950 text-neutral-600 text-center font-black uppercase tracking-widest py-4 rounded-xl border border-neutral-900 shadow-inner cursor-not-allowed opacity-80">
+            Not Available currently
+          </div>
             </div>
 
             <!-- Accent line -->
@@ -297,6 +297,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
   // private subscriptions: Subscription[] = [];
   private barberSubs: Subscription[] = [];
   private userSubs: Subscription[] = [];
+  private waitTimer: any;
   constructor(
     private auth: AuthService,  
     private router: Router,
@@ -319,6 +320,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
     // 2. Tsennay l-jdid real-time
 
        this.initUserWebSocket();
+       this.startWaitTimer();
 
   }
 
@@ -366,6 +368,10 @@ export class ClientDashboard implements OnInit, OnDestroy {
     this.barberSubs.forEach(s => s.unsubscribe());
     this.userSubs.forEach(s => s.unsubscribe());
     this.ws.disconnect();
+    // 🔥 ZID HADI HNA: Tfi l-Magana
+    if (this.waitTimer) {
+      clearInterval(this.waitTimer);
+    }
   }
 
   logout() {
@@ -378,21 +384,26 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
 
   loadLists() {
-    // Unsubscribe from old
     this.barberSubs.forEach(s => s.unsubscribe());
     this.barberSubs = [];
 
+    const now = new Date().getTime(); // 👈 L-waqt d daba
+
     this.barberService.getMyBarbers().subscribe(list => {
-      console.log(list);
-      
-      this.myBarbers = list;
-      this.subscribeToBarbers(list);
+      // 🔥 L-JDID: N-sajjlou targetTime (Waqt n-nihaya l-moudbot)
+      this.myBarbers = list.map(b => ({
+        ...b,
+        targetTime: b.estimatedWaitTime ? now + (b.estimatedWaitTime * 60000) : null
+      }));
+      this.subscribeToBarbers(this.myBarbers);
     });
 
     this.barberService.getMyFavorites().subscribe(list => {
-      this.myFavorites = list;
-      console.log(list);
-      this.subscribeToBarbers(list);
+      this.myFavorites = list.map(b => ({
+        ...b,
+        targetTime: b.estimatedWaitTime ? now + (b.estimatedWaitTime * 60000) : null
+      }));
+      this.subscribeToBarbers(this.myFavorites);
     });
   }
 
@@ -440,19 +451,60 @@ export class ClientDashboard implements OnInit, OnDestroy {
 
   // 2. L-Méthode li katti-jib l-Data jdida mn l-Backend bla ma t-rebel l-App
   refreshBarberData() {
+    const now = new Date().getTime();
+
     this.barberService.getMyBarbers().subscribe(list => {
-      this.myBarbers = list;
-      this.cdr.detectChanges(); // 👈 Katti-goul l-Angular y-beddel HTML f l-blassa
+      this.myBarbers = list.map(b => ({
+        ...b,
+        targetTime: b.estimatedWaitTime ? now + (b.estimatedWaitTime * 60000) : null
+      }));
+      this.cdr.detectChanges();
     });
 
     this.barberService.getMyFavorites().subscribe(list => {
-      this.myFavorites = list;
-      this.cdr.detectChanges(); // 👈 Katti-goul l-Angular y-beddel HTML f l-blassa
+      this.myFavorites = list.map(b => ({
+        ...b,
+        targetTime: b.estimatedWaitTime ? now + (b.estimatedWaitTime * 60000) : null
+      }));
+      this.cdr.detectChanges();
     });
     this.loadMyStatus();
   }
   
+// 🔥 L-Magana m-gadda: Katti-Freeze l-waqt ila l-coiffeur baqi ma-wrekch 3la START
+  startWaitTimer() {
+    this.waitTimer = setInterval(() => {
+      const now = new Date().getTime();
 
+      const updateBarberTime = (b: any) => {
+        // 1. N-checkiw wach l-coiffeur m-beddi l-khdma (Khddam f chi wahed daba)
+        // ⚠️ HNA: T2ekked mn s-smiya d status li katti-wlli 3ndu melli kiy-wrek 3la START
+        const isWorking = b.displayStatus === 'BUSY' || b.currentStatus === 'FULL';
+
+        if (b.targetTime) {
+          if (isWorking) {
+            // ✅ Ila khddam (Wrek 3la START) -> nqess l-waqt 3adi
+            if (b.targetTime > now) {
+              b.estimatedWaitTime = Math.ceil((b.targetTime - now) / 60000);
+            } else {
+              b.estimatedWaitTime = 0;
+            }
+          }else {
+            // 🛑 Ila jales (Ma-wrekch 3la START) -> FREEZE L-WAQT!
+            // Kan-zidou 10 twani (10000 ms) f targetTime bach l-fareq y-bqa howa howa u ma-y-n9ess-ch f HTML
+            b.targetTime = now + (b.estimatedWaitTime * 60000);
+          } 
+        }
+      };
+
+      // Tbiq l-qaleb 3la ga3 l-listes
+      this.myBarbers.forEach(updateBarberTime);
+      this.myFavorites.forEach(updateBarberTime);
+
+      this.cdr.detectChanges();
+      
+    }, 10000); // katti-t-executa kola 10 twani
+  }
 
   getStatusColor(status: string) {
     if (status === 'ACTIVE') return 'bg-green-500';
