@@ -1,13 +1,16 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { AuthService } from './auth';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const token = localStorage.getItem('token');
+  // N-jbdou l-token mn local storage
+  const token = localStorage.getItem('token'); 
+  
+  // Hadi ghadi t-goul lina f l-console wach l-interceptor khddam w wach l9a l-token
+  console.log('🚨 Interceptor déclenché ! URL:', req.url);
+  console.log('🔑 Token l9inah ? :', token ? 'Wyeh kayn' : 'La makaynch (null)');
   
   if (token) {
     const authReq = req.clone({
-      headers: req.headers.set('Authorization', `Bearer ${token}`)
+      setHeaders: { Authorization: `Bearer ${token}` }
     });
     return next(authReq);
   }
