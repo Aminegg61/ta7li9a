@@ -8,7 +8,7 @@ import { jwtDecode } from 'jwt-decode';
 })
 export class AuthService {
 
-  private baseUrl = 'http://localhost:8080'; // backend URL
+  private baseUrl = 'https://ta7li9a-backend.onrender.com'; // backend URL
 
   constructor(private http: HttpClient) {}
 
