@@ -7,7 +7,7 @@ import { AppointmentResponseDTO, AppointmentRequestDTO, User } from '../models/i
   providedIn: 'root'
 })
 export class AppointmentService {
-  private baseUrl = 'http://localhost:8080/api/appointments';
+  private baseUrl = 'https://ta7li9a-backend.onrender.com/api/appointments';
 
   constructor(private http: HttpClient) {}
 
