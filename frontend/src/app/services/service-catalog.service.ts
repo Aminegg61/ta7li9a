@@ -7,7 +7,7 @@ import { ServiceResponseDTO } from '../models/interfaces';
   providedIn: 'root'
 })
 export class ServiceCatalogService {
-  private baseUrl = 'http://localhost:8080/api/services';
+  private baseUrl = 'https://ta7li9a-backend.onrender.com';
 
   constructor(private http: HttpClient) {}
 
