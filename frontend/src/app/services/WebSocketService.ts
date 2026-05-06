@@ -12,7 +12,7 @@
 //   public statusUpdates = new Subject<any>();
 
 //   connect(barberId: number) {
-//     const socket = new SockJS('http://localhost:8080/ws-ta7li9a'); // Nafs l-URL li derti f Java
+//     const socket = new SockJS('https://ta7li9a-backend.onrender.com'); // Nafs l-URL li derti f Java
 //     this.stompClient = Stomp.over(socket);
 
 //     this.stompClient.connect({}, (frame: any) => {
