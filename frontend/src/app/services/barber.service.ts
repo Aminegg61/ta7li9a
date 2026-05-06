@@ -19,28 +19,28 @@ export class BarberService {
   }
 
   searchBarbers(query: string): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>(`http://localhost:8080/api/barbers/search?q=${query}`);
+    return this.http.get<BarberSearchDto[]>(`http://localhost:/api/barbers/search?q=${query}`);
   }
 
   addBarber(barberId: number): Observable<string> {
     // Expect text response or format appropriately based on your backend
-    return this.http.post('http://localhost:8080/api/barbers/add-barber/' + barberId, {}, { responseType: 'text' }) as Observable<string>;
+    return this.http.post('/api/barbers/add-barber/' + barberId, {}, { responseType: 'text' }) as Observable<string>;
   }
 
   getMyBarbers(): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>('http://localhost:8080/api/barbers/my-barbers');
+    return this.http.get<BarberSearchDto[]>('https://ta7li9a-backend.onrender.com/api/barbers/my-barbers');
   }
 
   getMyFavorites(): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>('http://localhost:8080/api/barbers/my-favorites');
+    return this.http.get<BarberSearchDto[]>('https://ta7li9a-backend.onrender.com/api/barbers/my-favorites');
   }
 
   removeBarber(barberId: number): Observable<void> {
-    return this.http.delete<void>(`http://localhost:8080/api/barbers/remove-barber/${barberId}`);
+    return this.http.delete<void>(`https://ta7li9a-backend.onrender.com/api/barbers/remove-barber/${barberId}`);
   }
 
   toggleFavorite(barberId: number): Observable<void> {
-    return this.http.put<void>(`http://localhost:8080/api/barbers/toggle-favorite/${barberId}`, {});
+    return this.http.put<void>(`https://ta7li9a-backend.onrender.com/api/barbers/toggle-favorite/${barberId}`, {});
   }
   pauseWork(): Observable<any> {
     // T2ekked mn l-URL dyalk wach howa hada (masalan: baseUrl + '/barbers/pause')
