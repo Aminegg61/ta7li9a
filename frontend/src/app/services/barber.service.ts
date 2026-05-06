@@ -7,7 +7,7 @@ import { BarberSearchDto } from '../models/interfaces';
   providedIn: 'root'
 })
 export class BarberService {
-  private baseUrl = 'http://localhost:8080/api/barber';
+  private baseUrl = 'https://ta7li9a-backend.onrender.com/api/barber';
 
   constructor(private http: HttpClient) {}
 
