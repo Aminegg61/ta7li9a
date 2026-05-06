@@ -7,7 +7,8 @@ import { ServiceResponseDTO } from '../models/interfaces';
   providedIn: 'root'
 })
 export class ServiceCatalogService {
-  private baseUrl = 'https://ta7li9a-backend.onrender.com';
+  // 🚨 HNA L-FIX: Zdna /api/services f l-kher
+  private baseUrl = 'https://ta7li9a-backend.onrender.com/api/services';
 
   constructor(private http: HttpClient) {}
 
