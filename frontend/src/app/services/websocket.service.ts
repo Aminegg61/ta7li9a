@@ -10,7 +10,8 @@ export class WebsocketService {
 
   constructor() {
     this.stompClient = new Client({
-      webSocketFactory: () => new SockJS('https://ta7li9a-backend.onrender.com'),
+      // 🚨 HNA KAN L-MOCHKIL: Zidna /ws-ta7li9a f l-kher dyal l-lien
+      webSocketFactory: () => new SockJS('https://ta7li9a-backend.onrender.com/ws-ta7li9a'),
       reconnectDelay: 5000,
       debug: (str) => console.log('STOMP:', str)
     });
