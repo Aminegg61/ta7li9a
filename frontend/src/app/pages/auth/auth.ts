@@ -198,7 +198,7 @@ export class Auth implements OnInit {
       lastName: ['',{ validators: [], updateOn: 'blur' }],
       phoneNumber: ['', {
         validators: [Validators.required, Validators.pattern('^[0-9]{10}$')],
-        updateOn: 'blur' // HADI HIYA L-MOHIMA
+        updateOn: 'blur'
       }],
       confirmPassword: ['']
     });
@@ -269,14 +269,19 @@ export class Auth implements OnInit {
     if (this.isLogin) {
       this.authService.login({ phoneNumber: val.phoneNumber, password: val.password }).subscribe({
         next: (res: any) => {
-          console.log(res);
+          console.log('Login daze:', res);
           
+          // 1. Sejjel l-token
           localStorage.setItem('token', res.token);
-          this.redirectByRole(res.role);
+          
+          // 2. Jbed l-role mn l-token nichan (machi mn res)
+          const actualRole = this.authService.getUserRole(); 
+          this.redirectByRole(actualRole);
         },
         error: (err) => {
           this.loading = false;
           this.errorMessage = 'Numéro de téléphone ou mot de passe incorrect';
+          console.error('Erreur f login:', err);
         }
       });
     } else {
@@ -295,17 +300,24 @@ export class Auth implements OnInit {
         confirmPassword: val.confirmPassword,
         role: this.role
       }).subscribe({
-        next: (res) => {
+        next: (res: any) => {
           this.loading = false;
-          this.successMessage = 'Registration successful! Please login.';
+          this.successMessage = 'Registration successful! Redirecting...';
+          
+          // 1. Sejjel l-token
           localStorage.setItem('token', res.token);
-          this.redirectByRole(res.role);
+          
+          // 2. Jbed l-role mn l-token nichan
+          const actualRole = this.authService.getUserRole(); 
+          this.redirectByRole(actualRole);
+          
           this.isLogin = true;
           this.form.reset();
         },
         error: (err) => {
           this.loading = false;
           this.errorMessage = 'Registration failed. Try again.';
+          console.error('Erreur f register:', err);
         }
       });
     }
