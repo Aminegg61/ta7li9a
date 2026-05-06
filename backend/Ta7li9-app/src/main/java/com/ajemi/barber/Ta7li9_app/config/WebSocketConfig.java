@@ -23,7 +23,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // 3. L-URL li ghadi i-t-connecta fih Angular
         registry.addEndpoint("/ws-ta7li9a")
-                .setAllowedOrigins("http://localhost:4200")
+                .setAllowedOriginPatterns("*") // Hna beddelnaha bach t9bel mn l-cloud
                 .withSockJS(); // Support l les browsers l-qdam
     }
 }
