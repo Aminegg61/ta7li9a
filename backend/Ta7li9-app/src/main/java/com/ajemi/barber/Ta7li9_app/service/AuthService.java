@@ -24,9 +24,6 @@ public class AuthService {
     private JwtUtils jwtUtils;
 
     public LoginResponse register(RequestRegister body) {
-        if (userRepository.existsByEmail(body.getEmail())) {
-            throw new RuntimeException("Email already exists");
-        }
         if(userRepository.existsByPhoneNumber(body.getPhoneNumber())){
             throw new RuntimeException("Phone already exists");
         }
@@ -48,13 +45,11 @@ public class AuthService {
         
         user.setFirstName(body.getFirstName());
         user.setLastName(body.getLastName());
-        user.setEmail(body.getEmail());
         user.setPassword(passwordEncoder.encode(body.getPassword()));
         user.setPhoneNumber(body.getPhoneNumber());
         userRepository.save(user);
                 // 3. Generi l-token
         String token = jwtUtils.generateJwtToken(user);
-        return new LoginResponse(token, user.getEmail(), user.getRole());
     }
 
     public LoginResponse login(RequestLogin body) {
@@ -70,6 +65,5 @@ public class AuthService {
         // 3. Generi l-token
         String token = jwtUtils.generateJwtToken(user);
         // 4. Rjje3 l-DTO kamel
-        return new LoginResponse(token, user.getEmail(), user.getRole());
     }  
 }
