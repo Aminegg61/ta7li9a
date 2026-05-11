@@ -250,15 +250,18 @@ export class Auth implements OnInit {
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      if (params['role'] === 'COIFFEUR' || params['role'] === 'CLIENT') {
-        this.role = params['role'];
-      }
-    });
-
+    // this.route.queryParams.subscribe(params => {
+    //   if (params['role'] === 'COIFFEUR' || params['role'] === 'CLIENT') {
+    //     this.role = params['role'];
+    //   }
+    // });
+    
     if (this.authService.isLoggedIn()) {
       this.redirectByRole(this.authService.getUserRole());
     }
+    this.isLogin = true; 
+    this.toggleMode();   
+    this.toggleMode();
   }
 
   isFieldInvalid(field: string): boolean {
