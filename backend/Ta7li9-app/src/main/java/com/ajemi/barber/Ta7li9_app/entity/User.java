@@ -30,9 +30,6 @@ public class User {
     private String firstName;
     private String lastName;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
     @Column(nullable = false)
     @JsonIgnore
     private String password;
