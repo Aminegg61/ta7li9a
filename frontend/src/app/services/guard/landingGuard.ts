@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../auth';
 
-export const landingGuard: CanActivateFn = (route, state) => {
+export const guestGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
@@ -13,7 +13,7 @@ export const landingGuard: CanActivateFn = (route, state) => {
     } else if (role === 'COIFFEUR') {
       router.navigate(['/barber/dashboard']);
     }
-    return false; // يمنع الوصول للLanding
+    return false; // بلوكي صفحة الـ Auth حيت ديجا هو Login
   }
-  return true; // إذا ما عندوش token، خلي يشوف Landing
+  return true; // إلا ما مسجلش، خليه يدخل لـ Auth
 };
