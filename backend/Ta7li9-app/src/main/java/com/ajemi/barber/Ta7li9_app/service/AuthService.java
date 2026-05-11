@@ -48,8 +48,12 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(body.getPassword()));
         user.setPhoneNumber(body.getPhoneNumber());
         userRepository.save(user);
-                // 3. Generi l-token
+        
+        // 3. Generi l-token
         String token = jwtUtils.generateJwtToken(user);
+        
+        // 4. Rjje3 l-DTO (Hna fin khellina l-mochkil)
+        return new LoginResponse(token, user.getRole());
     }
 
     public LoginResponse login(RequestLogin body) {
@@ -64,6 +68,8 @@ public class AuthService {
 
         // 3. Generi l-token
         String token = jwtUtils.generateJwtToken(user);
-        // 4. Rjje3 l-DTO kamel
+        
+        // 4. Rjje3 l-DTO kamel (Hna fin khellina l-mochkil)
+        return new LoginResponse(token, user.getRole());
     }  
 }
