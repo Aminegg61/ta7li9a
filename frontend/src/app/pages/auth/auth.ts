@@ -81,12 +81,7 @@ import { CommonModule } from '@angular/common';
                   placeholder="Doe">
               </div>
             </div>
-            <div class="space-y-1">
-              <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Email</label>
-              <input formControlName="email" type="email" 
-                class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors placeholder:text-neutral-700" 
-                placeholder="you@example.com">
-            </div>
+
             
             </ng-container>
             
@@ -115,42 +110,88 @@ import { CommonModule } from '@angular/common';
 
           <div class="space-y-1">
             <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Password</label>
-            <input 
-              formControlName="password" 
-              type="password" 
-              class="w-full bg-neutral-950 border rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none transition-all placeholder:text-neutral-700" 
-              [class.border-red-500]="isFieldInvalid('password')"
-              [class.border-neutral-800]="!isFieldInvalid('password')"
-              [class.focus:border-yellow-500]="!isFieldInvalid('password')"
-              placeholder="••••••••">
+              <div class="relative">
+                <input 
+                  formControlName="password" 
+                  [type]="showPassword ? 'text' : 'password'" 
+                  class="w-full bg-neutral-950 border rounded-xl px-4 py-3 pr-12 text-sm font-bold text-white focus:outline-none transition-all"
+                  [class.border-red-500]="isFieldInvalid('password')"
+                  [class.border-neutral-800]="!isFieldInvalid('password')"
+                  placeholder="••••••••">
+              
+              <!-- L-icon ban ghi ila kant l-katba (value length > 0) -->
+              <button 
+                *ngIf="form.get('password')?.value?.length > 0"
+                type="button"
+                (click)="showPassword = !showPassword"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-yellow-500 transition-colors">
+                
+                <!-- Eye-Off (Slash) -> t-ban mlli y-koun l-password m-khabbi (showPassword = false) -->
+                <svg *ngIf="!showPassword" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
 
-            <div *ngIf="isFieldInvalid('password')" class="mt-1 ml-1 flex flex-col gap-1">
-              <span *ngIf="form.get('password')?.errors?.['required']" class="text-red-500 text-[10px] font-bold italic">
-                Password darouri bach t-dkhol!
-              </span>
-              <span *ngIf="form.get('password')?.errors?.['minlength']" class="text-red-500 text-[10px] font-bold italic">
-                Password khass ykoun fih 6 d l-7ourouf l-aqall.
-              </span>
+                <!-- Eye (Open) -> t-ban mlli y-koun l-password bayen (showPassword = true) -->
+                <svg *ngIf="showPassword" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.644C3.483 8.653 7.377 6 12 6s8.517 2.653 9.964 5.678c.045.129.045.258 0 .387-1.447 3.025-5.341 5.678-12 5.678s-8.517-2.653-9.964-5.678Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+
+              </button>
             </div>
+
+              <div *ngIf="isFieldInvalid('password')" class="mt-1 ml-1 flex flex-col gap-1">
+                  <span *ngIf="form.get('password')?.errors?.['required']" class="text-red-500 text-[10px] font-bold italic">
+                    Password darouri!
+                  </span>
+                  <!-- Had l-message gha-yban ila l-user madarch Majuscule walla Minuscule walla Raqm -->
+                  <span *ngIf="form.get('password')?.errors?.['pattern']" class="text-red-500 text-[10px] font-bold italic">
+                    Khass t-dir 7arf kbir, 7arf sghir u raqm (u 6 d l-7ourouf l-aqall).
+                  </span>
+                </div>
           </div>
 
           <div class="space-y-1" *ngIf="!isLogin">
             <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Confirm Password</label>
-            <input 
-              formControlName="confirmPassword" 
-              type="password" 
-              class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors" 
-              placeholder="••••••••">
+              <div class="relative">
+                <input 
+                  formControlName="confirmPassword" 
+                  [type]="showConfirmPassword ? 'text' : 'password'" 
+                  class="w-full bg-neutral-950 border rounded-xl px-4 py-3 pr-12 text-sm font-bold text-white focus:outline-none transition-all"
+                  [class.border-red-500]="form.hasError('mismatch') && form.get('confirmPassword')?.touched"
+                  [class.border-neutral-800]="!(form.hasError('mismatch') && form.get('confirmPassword')?.touched)"
+                  placeholder="••••••••">
               
-            <p *ngIf="errorMessage === 'Passwords do not match'" class="text-red-500 text-[10px] mt-1 ml-1 font-bold italic">
-              L-passwords machi b7al b7al!
-            </p>
+              <!-- Button Show/Hide for Confirm Password -->
+              <button 
+                *ngIf="form.get('confirmPassword')?.value?.length > 0"
+                type="button"
+                (click)="showConfirmPassword = !showConfirmPassword"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-yellow-500 transition-colors">
+                
+                <!-- Eye-Off (m-khabbi) -->
+                <svg *ngIf="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+
+                <!-- Eye (bayen) -->
+                <svg *ngIf="showConfirmPassword" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.644C3.483 8.653 7.377 6 12 6s8.517 2.653 9.964 5.678c.045.129.045.258 0 .387-1.447 3.025-5.341 5.678-12 5.678s-8.517-2.653-9.964-5.678Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+              </button>
+            </div>
+                
+              <p *ngIf="form.hasError('mismatch') && form.get('confirmPassword')?.touched" 
+                class="text-red-500 text-[10px] mt-1 ml-1 font-bold italic">
+                L-passwords machi b7al b7al!
+              </p>
           </div>
 
           <button 
             type="submit"
-            [disabled]="loading"
-            class="w-full bg-yellow-500 text-black font-black uppercase tracking-widest py-4 rounded-xl hover:bg-yellow-400 transition-all active:scale-[0.98] mt-6 disabled:opacity-50 flex justify-center">
+            [disabled]="loading || (isLogin ? (form.get('phoneNumber')?.invalid || form.get('password')?.invalid) : form.invalid)"
+            class="w-full bg-yellow-500 text-black font-black uppercase tracking-widest py-4 rounded-xl hover:bg-yellow-400 transition-all active:scale-[0.98] mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center">
             <span *ngIf="!loading">{{ isLogin ? 'Sign In' : 'Sign Up' }}</span>
             <span *ngIf="loading" class="animate-pulse">Loading...</span>
           </button>
@@ -181,6 +222,8 @@ export class Auth implements OnInit {
   loading = false;
   errorMessage = '';
   successMessage = '';
+  showPassword = false;
+  showConfirmPassword = false;
 
   constructor(
     private fb: FormBuilder,
@@ -189,18 +232,20 @@ export class Auth implements OnInit {
     private route: ActivatedRoute
   ) {
     this.form = this.fb.group({
-      email: [''],
       password: ['', {
-        validators: [Validators.required, Validators.minLength(6)],
-        updateOn: 'change' 
+        validators: [Validators.required, Validators.pattern(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/)],
+        updateOn: 'change'
       }],
-      firstName: ['',{ validators: [], updateOn: 'blur' }],
-      lastName: ['',{ validators: [], updateOn: 'blur' }],
+      firstName: ['', { validators: [], updateOn: 'blur' }],
+      lastName: ['', { validators: [], updateOn: 'blur' }],
       phoneNumber: ['', {
         validators: [Validators.required, Validators.pattern('^[0-9]{10}$')],
         updateOn: 'blur'
       }],
-      confirmPassword: ['']
+      // حيد Validators.required من هنا فالبدية
+      confirmPassword: [''] 
+    }, { 
+      validators: this.passwordMatchValidator.bind(this) 
     });
   }
 
@@ -230,29 +275,30 @@ export class Auth implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    // Kan-jabdo l-controls li m-mrtabtinsh b l-Login
-    const registerFields = ['firstName', 'lastName', 'email'];
+    const registerFields = ['firstName', 'lastName', 'confirmPassword'];
 
     registerFields.forEach(fieldName => {
       const control = this.form.get(fieldName);
       if (control) {
         if (!this.isLogin) {
-          // ILA KNA F REGISTER: Zid l-validators
+          // فاش نكونو في REGISTER: ردهم ضروريين
           control.setValidators([Validators.required]);
-          if (fieldName === 'email') {
-            control.setValidators([Validators.required, Validators.email]);
-          }
         } else {
-          // ILA KNA F LOGIN: 7iyed l-validators bach l-form t-welli Valid
+          // فاش نكونو في LOGIN: حيد كولشي
           control.clearValidators();
+          control.setErrors(null); 
         }
-        // DAROURI: t-goul l-Angular y-3awed y-calculi wach l-field valid walla la
         control.updateValueAndValidity();
       }
     });
+
+    // تنظيف الـ Form Group كلو من أي mismatch قديم
+    this.form.setErrors(null);
+    this.form.updateValueAndValidity();
   }
 
   onSubmit() {
+
     if (this.form.invalid) {
       // Hadi kat-khalli ayy input fih error y-welli 7mer 
       this.form.markAllAsTouched();
@@ -269,55 +315,37 @@ export class Auth implements OnInit {
     if (this.isLogin) {
       this.authService.login({ phoneNumber: val.phoneNumber, password: val.password }).subscribe({
         next: (res: any) => {
-          console.log('Login daze:', res);
+          console.log(res);
           
-          // 1. Sejjel l-token
           localStorage.setItem('token', res.token);
-          
-          // 2. Jbed l-role mn l-token nichan (machi mn res)
-          const actualRole = this.authService.getUserRole(); 
-          this.redirectByRole(actualRole);
+          this.redirectByRole(res.role);
         },
         error: (err) => {
           this.loading = false;
           this.errorMessage = 'Numéro de téléphone ou mot de passe incorrect';
-          console.error('Erreur f login:', err);
         }
       });
     } else {
-      if (val.password !== val.confirmPassword) {
-        this.errorMessage = 'Passwords do not match';
-        this.loading = false;
-        return;
-      }
 
       this.authService.register({
         firstName: val.firstName,
         lastName: val.lastName,
-        email: val.email,
         phoneNumber: val.phoneNumber,
         password: val.password,
         confirmPassword: val.confirmPassword,
         role: this.role
       }).subscribe({
-        next: (res: any) => {
+        next: (res) => {
           this.loading = false;
-          this.successMessage = 'Registration successful! Redirecting...';
-          
-          // 1. Sejjel l-token
+          this.successMessage = 'Registration successful! Please login.';
           localStorage.setItem('token', res.token);
-          
-          // 2. Jbed l-role mn l-token nichan
-          const actualRole = this.authService.getUserRole(); 
-          this.redirectByRole(actualRole);
-          
+          this.redirectByRole(res.role);
           this.isLogin = true;
           this.form.reset();
         },
         error: (err) => {
           this.loading = false;
           this.errorMessage = 'Registration failed. Try again.';
-          console.error('Erreur f register:', err);
         }
       });
     }
@@ -329,5 +357,17 @@ export class Auth implements OnInit {
     } else {
       this.router.navigate(['/client/dashboard']);
     }
+  }
+  // Function bach t-checki wach password match
+  passwordMatchValidator(g: FormGroup) {
+    // ILA KNA F LOGIN: Mat-checki walo, rajje3 null (ya3ni Valid)
+    if (this.isLogin) return null;
+
+    const password = g.get('password')?.value;
+    const confirmPassword = g.get('confirmPassword')?.value;
+
+    if (!confirmPassword) return null;
+
+    return password === confirmPassword ? null : { mismatch: true };
   }
 }
