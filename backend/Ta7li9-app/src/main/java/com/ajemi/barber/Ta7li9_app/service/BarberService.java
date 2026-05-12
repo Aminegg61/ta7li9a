@@ -28,16 +28,49 @@ public class BarberService {
     public void toggleStatus(Long coiffeurId, String newStatus) {
         BarberStatus status = fromString(newStatus);
         
-        // 1. Update f l-Base de données
-        User coiffeur = userRepository.findById(coiffeurId).get();
+        User coiffeur = userRepository.findById(coiffeurId)
+                .orElseThrow(() -> new RuntimeException("Coiffeur malqinahch"));
+
+        // 🔥 1. Logic dyal FULL: Ma-tqderch tdirha w n-nouba khawya
+        if (status == BarberStatus.FULL) {
+            List<AppointmentEntity> activeQueue = appointmentRepository.findByCoiffeurIdAndStatusIn(
+                coiffeurId, 
+                List.of(AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
+            );
+            
+            if (activeQueue.isEmpty()) {
+                // Hada ghay-rejje3 Error 400 l-Angular
+                throw new IllegalStateException("Ma tqderch tdir FULL w n-nouba khawya!"); 
+            }
+        }
+
+        // 🔥 2. Logic dyal OFFLINE: Annuler ga3 l-klyan li kyt-snaw (WAITING) wla li talbin (PENDING)
+        if (status == BarberStatus.OFFLINE) {
+            List<AppointmentEntity> toCancel = appointmentRepository.findByCoiffeurIdAndStatusIn(
+                coiffeurId, 
+                List.of(AppointmentStatus.WAITING, AppointmentStatus.PENDING)
+            );
+            
+            if (!toCancel.isEmpty()) {
+                toCancel.forEach(app -> {
+                    // Mola7ada: T2ked blli l-Enum dyalek smitou CANCELED, awla bdelha l-REJECTED ila knti msemiha hakka
+                    app.setStatus(AppointmentStatus.CANCELLED); 
+                });
+                appointmentRepository.saveAll(toCancel);
+            }
+            
+            // Ila kan chi wa7ed f l-korsi (IN_PROGRESS), ghay-bqa hta y-sali m3ah l-coiffeur b yddou.
+        }
+
+        // 3. Update Status f l-Base de données
         coiffeur.setCurrentStatus(status);
         userRepository.save(coiffeur);
 
-        // 2. Sift l-išara l-qdima (Khelliha ila knti baqi katti-sta3melha f chi blassa)
+        // 4. Sift l-išara f WebSocket (Hadi ghay-sme3ha l-klyan w l-coiffeur bach y-t-updataw)
         String topic = "/topic/status/" + coiffeurId;
         messagingTemplate.convertAndSend(topic, newStatus.toUpperCase());
         
-        // 👇 3. 🔥 ZID HADI: Sift Signal f Queue bach l-App jdida dyal l-client t-sme3 w t-updata l-alwan
+        // Zidna signal d l-queue bach ta l-klyan li t-annula y-t-refrisha 3ndo l-UI
         messagingTemplate.convertAndSend("/topic/queue/" + coiffeurId, "STATUS_CHANGED");
     }
 
