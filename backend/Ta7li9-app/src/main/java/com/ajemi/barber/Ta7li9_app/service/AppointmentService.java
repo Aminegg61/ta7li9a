@@ -41,20 +41,25 @@ public class AppointmentService {
 
     public List<User> searchClient(Long coiffeurId, String query) {
         // Stage 1: Qelleb f l-History dyalk (Prefix Search)
-        // Ila ktabتي "A", kiy-jbed Amine li fayt 7ssen 3ndek   
         List<User> historyClients = appointmentRepository.findMyPastClients(coiffeurId, query);
         
-        if (!historyClients.isEmpty()) {
-            return historyClients;
-        }
-
-        // Stage 2: Ila malqiti walou f l-History (ya3ni jdid 3ndek)
-        // Khass darori i-koun ktab nemra d t-telfon kamla (masalan 10 d l-arqam)
+        // 🔥 L-FIX 1: N-filtriw l-History bach n-7iydou l-Coiffeur ila kan fiha
+        List<User> filteredHistory = historyClients.stream()
+                .filter(client -> !client.getId().equals(coiffeurId))
+                .toList();
+        
+        if (!filteredHistory.isEmpty()) {
+            return filteredHistory;
+    }
+        
+        // Stage 2: Ila malqiti walou f l-History
         if (query.matches("\\d{10}")) { 
-            // Kan-mchiw l l-UserRepository n-qelbou f l-app kamla
+            // Kan-mchiw l l-UserRepository n-qelbou b n-nemra
             return userRepository.findByPhoneNumber(query)
-                    .map(List::of) // Ila lqah kiy-rj3o f Lista
-                    .orElse(Collections.emptyList()); // Ila malqahch kiy-rjje3 lista khawya
+                    // 🔥 L-FIX 2: N-checkiw wach had l-user li lqina machi howa l-coiffeur
+                    .filter(user -> !user.getId().equals(coiffeurId)) 
+                    .map(List::of)
+                    .orElse(Collections.emptyList());
         }
 
         return Collections.emptyList();
@@ -84,6 +89,9 @@ public class AppointmentService {
         // --- Ta7did Roles ---
         if (isCoiffeur) { // Coiffeur Manual Add
             coiffeur = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Coiffeur not found"));
+            if (dto.getClientId() == null && (dto.getManualName() == null || dto.getManualName().trim().isEmpty())) {
+                throw new IllegalArgumentException("Ma ymkench t-zid rendez-vous bla klyan w bla smiyat Guest!");
+            }
             if (dto.getClientId() != null) {
                 client = userRepository.findById(dto.getClientId()).orElse(null);
             } else {
