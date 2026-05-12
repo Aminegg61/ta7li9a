@@ -241,20 +241,6 @@ import { ChangeDetectorRef } from '@angular/core';
           </div>
         </section>
 
-        <!-- HISTORY -->
-        <section class="opacity-70 mt-12">
-          <h2 class="text-sm text-neutral-500 font-black uppercase tracking-widest mb-4">Completed Today</h2>
-          <div class="space-y-2">
-            <div *ngIf="historyQueue.length === 0" class="text-xs font-bold text-neutral-600">No history yet.</div>
-            <div *ngFor="let apt of historyQueue" class="bg-neutral-950 border border-neutral-900 rounded-xl p-4 flex justify-between items-center">
-              <div>
-                <p class="font-bold text-neutral-400 text-sm">{{ apt.clientName }}</p>
-                <p class="text-[10px] font-bold text-neutral-600">{{ apt.serviceNames.join(', ') }}</p>
-              </div>
-              <span class="text-[10px] font-black text-green-500/50 uppercase tracking-widest">COMPLETED</span>
-            </div>
-          </div>
-        </section>
 
       </main>
 
@@ -368,7 +354,6 @@ export class BarberDashboard implements OnInit {
   statusErrorMessage: string = '';
   currentUser: any;
   activeQueue: AppointmentResponseDTO[] = [];
-  historyQueue: AppointmentResponseDTO[] = [];
   
   drawerOpen = false;
   manualAddOpen = false;
@@ -490,7 +475,6 @@ export class BarberDashboard implements OnInit {
         this.pendingRequests = res.filter(a => a.status === 'PENDING');
         // Filter l-appointments b7al dima
         this.activeQueue = res.filter(a => a.status === 'WAITING' || a.status === 'IN_PROGRESS');
-        this.historyQueue = res.filter(a => a.status === 'COMPLETED');
         console.log("Active Queue Filtered:", this.activeQueue);
         // 🔥 Zid hadi hna darouri bach t-t-refresh l-UI
         this.cdr.detectChanges();
