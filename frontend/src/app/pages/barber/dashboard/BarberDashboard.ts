@@ -254,8 +254,11 @@ import { ChangeDetectorRef } from '@angular/core';
             <!-- Client Search -->
             <div class="space-y-2">
               <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Search Client / Phone</label>
+
+                            <!-- زدنـا [disabled] باش تـطفى إلى كان Guest مكتوب -->
               <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchClients($event)" 
-                class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500" 
+                              [disabled]="manualName.trim().length > 0"
+                class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed" 
                 placeholder="Type name or 10-digit phone...">
               
               <div *ngIf="searchResults.length > 0" class="bg-neutral-950 border border-neutral-800 rounded-xl p-2 mt-2 max-h-40 overflow-y-auto">
@@ -263,8 +266,8 @@ import { ChangeDetectorRef } from '@angular/core';
                         (click)="selectUser(user)"
                         [disabled]="isUserInQueue(user.id)"
                         class="w-full text-left px-3 py-2 rounded-lg transition-colors flex justify-between items-center"
-                        [ngClass]="{'opacity-50 grayscale cursor-not-allowed bg-red-900/10': isUserInQueue(user.id)}">
-                  
+                        [ngClass]="{'opacity-50 grayscale cursor-not-allowed bg-red-900/10': isUserInQueue(user.id), 'hover:bg-neutral-800': !isUserInQueue(user.id)}">                  
+                        
                   <span class="font-bold text-sm">{{ user.firstName }} {{ user.lastName }}</span>
                   <span *ngIf="isUserInQueue(user.id)" class="text-[8px] font-black bg-red-500 text-white px-2 py-1 rounded italic uppercase">Already in Queue</span>
                   <span *ngIf="!isUserInQueue(user.id)" class="text-xs text-neutral-500">{{ user.phoneNumber }}</span>
@@ -274,8 +277,11 @@ import { ChangeDetectorRef } from '@angular/core';
               <!-- Guest entry -->
               <div class="mt-4 pt-4 border-t border-neutral-800 space-y-2">
                 <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Or enter guest name</label>
-                <input type="text" [(ngModel)]="manualName" (input)="manualClientId = null; searchQueue = []"
-                  class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500" 
+
+                                <!-- زدنـا [disabled] باش تـطفى إلى اختارينا كليان -->
+                <input type="text" [(ngModel)]="manualName" (input)="manualClientId = null; searchResults = []"
+                  [disabled]="manualClientId !== null"
+                  class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed" 
                   placeholder="Guest Name">
               </div>
             </div>
@@ -300,7 +306,11 @@ import { ChangeDetectorRef } from '@angular/core';
           <!-- Buttons -->
           <div class="mt-8 flex gap-3 pt-4 border-t border-neutral-800">
             <button (click)="manualAddOpen = false" class="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-400 font-black uppercase tracking-widest py-3 rounded-xl hover:text-white">Cancel</button>
-            <button (click)="submitManualAdd()" class="flex-1 bg-yellow-500 text-black font-black uppercase tracking-widest py-3 rounded-xl hover:bg-yellow-400 disabled:opacity-50">Confirm</button>
+            <button (click)="submitManualAdd()" 
+                    [disabled]="selectedServiceIds.length === 0 || (!manualClientId && manualName.trim().length === 0)"
+                    class="flex-1 bg-yellow-500 text-black font-black uppercase tracking-widest py-3 rounded-xl hover:bg-yellow-400 disabled:opacity-30 disabled:cursor-not-allowed">
+              Confirm
+            </button>
           </div>
         </div>
       </div>
@@ -540,6 +550,9 @@ export class BarberDashboard implements OnInit {
   }
 
   onSearchClients(val: string) {
+        if (this.manualClientId) {
+      this.manualClientId = null; 
+    }
     if (val.length > 2) {
       this.appointmentService.searchClients(val).subscribe(res => {
         this.searchResults = Array.isArray(res) ? res : [res]; // Wrap if it returns 1 user
@@ -582,7 +595,11 @@ export class BarberDashboard implements OnInit {
 
   submitManualAdd() {
     if (this.selectedServiceIds.length === 0) return;
-    
+        // 2. Khass y-koun ya imma Client sélectionné YA IMMA Guest Name m-ktoub
+    if (!this.manualClientId && this.manualName.trim().length === 0) {
+      alert("Khassk t-3zel klyan mn l-la2i7a awla t-kteb smiya d-Guest!");
+      return;
+    }
     const dto = {
       clientId: this.manualClientId,
       manualName: this.manualName,
