@@ -292,7 +292,6 @@ import { ChangeDetectorRef } from '@angular/core';
                     <p class="font-bold text-sm">{{ srv.name }}</p>
                     <p class="text-xs text-neutral-500">{{ srv.duration }}</p>
                   </div>
-                  <span class="font-black text-yellow-500 text-sm">{{ srv.price }} DH</span>
                 </label>
               </div>
             </div>
@@ -320,8 +319,8 @@ import { ChangeDetectorRef } from '@angular/core';
             <div *ngFor="let srv of myServices" class="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex justify-between items-center">
               <div>
                 <p class="font-bold text-white">{{ srv.name }}</p>
-                <p class="text-xs font-bold text-neutral-500">{{ srv.duration }} • <span class="text-yellow-500">{{ srv.price }} MAD</span></p>
-              </div>
+                <p class="text-xs font-bold text-neutral-500">{{ srv.duration }}</p>
+                </div>
               <button (click)="deleteService(srv.id)" class="text-red-500 hover:text-red-400 p-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </button>
@@ -334,7 +333,6 @@ import { ChangeDetectorRef } from '@angular/core';
             <div class="space-y-3">
               <input type="text" [(ngModel)]="newServiceName" placeholder="Service Name" class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-yellow-500">
               <div class="flex gap-3">
-                <input type="number" [(ngModel)]="newServicePrice" placeholder="Price (MAD)" class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-yellow-500">
                 <input type="number" [(ngModel)]="newServiceDuration" placeholder="Duration (min)" class="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-yellow-500">
               </div>
               <button (click)="addNewService()" class="w-full bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] py-2 rounded-lg hover:bg-yellow-400 mt-2">
@@ -371,7 +369,6 @@ export class BarberDashboard implements OnInit {
 
   // New Service state
   newServiceName = '';
-  newServicePrice: number | null = null;
   newServiceDuration: number | null = null;
   pendingRequests: AppointmentResponseDTO[] = [];
 
@@ -605,15 +602,14 @@ export class BarberDashboard implements OnInit {
   }
 
   addNewService() {
-    if (!this.newServiceName || !this.newServicePrice || !this.newServiceDuration) return;
+    if (!this.newServiceName || !this.newServiceDuration) return;
     
     this.catalogService.addService({
       name: this.newServiceName,
-      price: this.newServicePrice,
+      // price:0,
       duration: this.newServiceDuration
     }).subscribe(() => {
       this.newServiceName = '';
-      this.newServicePrice = null;
       this.newServiceDuration = null;
       this.loadServices();
     });
