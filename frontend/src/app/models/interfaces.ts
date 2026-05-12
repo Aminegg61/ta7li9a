@@ -27,7 +27,7 @@ export interface AppointmentRequestDTO {
 export interface ServiceResponseDTO {
   id: number;
   name: string;
-  price: number;
+  price?: number;
   duration: string;  // formatted: "30min", "1h", "1h 30min"
   coiffeurName: string;
 }
