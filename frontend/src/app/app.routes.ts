@@ -5,7 +5,7 @@ import { authGuard } from './services/guard/auth.guard';
 import { ClientDashboard } from './pages/client/dashboard/ClientDashboard';
 import { guestGuard } from './services/guard/landingGuard';
 export const routes: Routes = [
-  { path: '', redirectTo: 'auth', pathMatch: 'full' },
+  { path: '', redirectTo: 'auth', pathMatch: 'full' ],
   
   { 
     path: 'auth', 
