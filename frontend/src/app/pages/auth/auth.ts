@@ -355,7 +355,7 @@ export class Auth implements OnInit {
   }
 
   private redirectByRole(role: string) {
-    if (role === 'COIFFEUR') {
+    if (role === 'COIFFEUR') {  
       this.router.navigate(['/barber/dashboard']);
     } else {
       this.router.navigate(['/client/dashboard']);
