@@ -67,18 +67,27 @@ import { ChangeDetectorRef } from '@angular/core';
             <span class="w-2 h-2 rounded-full" [ngClass]="{'bg-green-500 animate-pulse': currentStatus === 'ACTIVE', 'bg-orange-500': currentStatus === 'FULL', 'bg-neutral-600': currentStatus === 'OFFLINE'}"></span>
             Current Status
           </p>
-          
+
+                    <!-- الميساج ديال الخطأ (Error Message) -->
+          <div *ngIf="statusErrorMessage" class="bg-red-900/20 border border-red-500/50 text-red-500 text-xs font-bold p-2 mb-4 rounded-xl">
+            {{ statusErrorMessage }}
+          </div>
+
           <div class="flex items-center justify-center p-1 bg-neutral-950 rounded-2xl w-max mx-auto border border-neutral-800/50">
             <button (click)="setStatus('ACTIVE')" 
               class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all"
               [ngClass]="currentStatus === 'ACTIVE' ? 'bg-green-500 text-black shadow-lg scale-105' : 'text-neutral-500 hover:text-white'">
               ACTIVE
             </button>
+
+            <!-- زر FULL معدل -->
             <button (click)="setStatus('FULL')" 
-              class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all"
+              [disabled]="activeQueue.length === 0"
+              class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               [ngClass]="currentStatus === 'FULL' ? 'bg-orange-500 text-black shadow-lg scale-105' : 'text-neutral-500 hover:text-white'">
               FULL
             </button>
+            
             <button (click)="setStatus('OFFLINE')" 
               class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all"
               [ngClass]="currentStatus === 'OFFLINE' ? 'bg-neutral-700 text-white shadow-lg scale-105' : 'text-neutral-500 hover:text-white'">
@@ -356,6 +365,7 @@ import { ChangeDetectorRef } from '@angular/core';
 })
 export class BarberDashboard implements OnInit {
   currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE' | 'ON_BREAK' = 'OFFLINE';
+  statusErrorMessage: string = '';
   currentUser: any;
   activeQueue: AppointmentResponseDTO[] = [];
   historyQueue: AppointmentResponseDTO[] = [];
@@ -435,9 +445,40 @@ export class BarberDashboard implements OnInit {
   }
 
   setStatus(st: 'ACTIVE' | 'FULL' | 'OFFLINE') {
-    this.barberService.updateStatus(st).subscribe(() => {
-      this.currentStatus = st;
-    });
+    this.statusErrorMessage = ''; // مسح الأخطاء القديمة
+
+    // --- الشرط الأول: مايمكنش دير FULL والصف خاوي ---
+    if (st === 'FULL' && this.activeQueue.length === 0) {
+      this.statusErrorMessage = "Ma tqderch tdir FULL w n-nouba khawya!";
+      setTimeout(() => this.statusErrorMessage = '', 3000); // حيد الميساج من بعد 3 ثواني
+      return;
+    }
+
+    // --- الشرط الثاني: تحذير قبل الـ OFFLINE إلى كان الصف عامر ---
+    if (st === 'OFFLINE' && this.activeQueue.length > 0) {
+      const confirmCancel = confirm(
+        `Wdya! 3ndek ${this.activeQueue.length} l-klyan kyt-snaw. Ila derti OFFLINE ghadi y-t'annulaw l-mawa3id dylhom kamlin. Wach mt2ked bghiti t-sed?`
+      );
+      
+      if (!confirmCancel) {
+        return; // إلى برك على "Annuler"، حبس العملية
+      }
+    }
+
+    // إلى داز من الشروط، صيفط للسيرفر
+    this.barberService.updateStatus(st).subscribe({
+      next: () => {
+        this.currentStatus = st;
+        // إلى دار OFFLINE ومسحنا الكليان، خصنا نـريفرشيو الـ Queue باش تخوى حتى فـ الشاشة
+        if (st === 'OFFLINE') {
+           this.loadQueue(); 
+        }
+      },
+      error: (err) => {
+        this.statusErrorMessage = "Wqe3 chi mochkil, 3awd jerreb.";
+        console.error("Error updating status:", err);
+      }
+  });
   }
 
   loadQueue() {
