@@ -455,38 +455,27 @@ public class AppointmentService {
         
         return mapToResponseDTO(app);
     }
-    // had queeue li ychofha coiffeur la2i7at l2intidar 
+    // had queue li ychofha coiffeur (la2i7at l2intidar active safi)
     public List<AppointmentResponseDTO> getTodayQueue(Long coiffeurId) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-
-        // 1. Jib ga3 l-Appointments dyal had l-coiffeur (ga3 l-statuses li bghina)
-        List<AppointmentEntity> allApps = appointmentRepository.findByCoiffeurIdAndStatusIn(
-            coiffeurId, 
-            List.of(AppointmentStatus.PENDING, AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS, AppointmentStatus.COMPLETED)
+        
+        // 1. Jib ghir l-Appointments li m7tajin l-khdma (bla COMPLETED)
+        List<AppointmentEntity> activeApps = appointmentRepository.findByCoiffeurIdAndStatusIn(
+        coiffeurId, 
+        List.of(AppointmentStatus.PENDING, AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
         );
 
-        // 2. Filter-i l-data f Java bach t-7ell mouchkil l-NULL u l-Dates
-        List<AppointmentEntity> filteredApps = allApps.stream()
-            .filter(app -> {
-                // A: Ila kan PENDING, khallih y-douz (wakha startTime null)
-                if (app.getStatus() == AppointmentStatus.PENDING) return true;
-                
-                // B: Ila kan status khor, khass darouri y-koun f lyoma
-                if (app.getStartTime() != null) {
-                    return !app.getStartTime().isBefore(startOfDay) && !app.getStartTime().isAfter(endOfDay);
-                }
-                return false;
-            })
-            .sorted((a, b) -> {
+        // 2. Rttebhom b l-waqt dyalhom
+        List<AppointmentEntity> sortedApps = activeApps.stream()
+            
+        .sorted((a, b) -> {
                 // Sort: PENDING y-jiw l-foq (wallah 7tarem l-weqt li dejà m-calculé)
                 if (a.getStartTime() == null || b.getStartTime() == null) return 0;
                 return a.getStartTime().compareTo(b.getStartTime());
             })
             .toList();
 
-        System.out.println("Found Appointments: " + filteredApps.size());
-        return filteredApps.stream().map(this::mapToResponseDTO).toList();
+        System.out.println("Found Active Appointments: " + sortedApps.size());
+        return sortedApps.stream().map(this::mapToResponseDTO).toList();
     }
 
     public List<AppointmentResponseDTO> getMyActiveAppointments(Long clientId) {
