@@ -267,7 +267,7 @@ import { AuthService } from '../../../services/auth';
                   <span class="text-[10px] font-black uppercase font-bold text-neutral-500">{{ srv.duration }}</span>
                 </div>
               </div>
-              <span class="font-black text-yellow-500">{{ srv.price }} MAD</span>
+
             </label>
           </div>
 
