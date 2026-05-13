@@ -151,8 +151,12 @@ import { AuthService } from '../../../services/auth';
 
                 <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800 flex flex-col justify-center">
                   <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">Est. Wait</p>
-                  <p class="font-black text-xl text-yellow-500">{{ barber.estimatedWaitTime }} <span class="text-xs text-neutral-500 font-bold ml-1">min</span></p>
-                </div>
+                  
+                  <!-- حيدنا الـ span ودرنا الـ الميثود ديالنا -->
+                  <p class="font-black text-xl text-yellow-500">
+                    {{ formatWaitTime(barber.estimatedWaitTime) }}
+                  </p>
+                  </div>
 
               </div>
 
@@ -751,5 +755,17 @@ export class ClientDashboard implements OnInit, OnDestroy {
         error: (err) => console.error("Error canceling", err)
       });
     }
+  }
+    formatWaitTime(minutes: number | null): string {
+    if (minutes === null || minutes === undefined) return "0min";
+    if (minutes < 60) return minutes + "min";
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (remainingMinutes === 0) {
+      return hours + "h";
+    }
+    return hours + "h " + remainingMinutes + "min";
   }
 }
