@@ -4,5 +4,5 @@ public enum BarberStatus {
     ACTIVE,  // 🟢 Khddam
     FULL,    // 🟡 3amer (Toggle manual)
     OFFLINE,  // 🔴 Sād
-    ON_BREAK // ⏸️ Pause
+    //ON_BREAK // ⏸️ Pause
 }

@@ -1,6 +1,10 @@
 package com.ajemi.barber.Ta7li9_app.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,8 +13,10 @@ import org.springframework.stereotype.Service;
 
 import com.ajemi.barber.Ta7li9_app.dto.ServiceRequestDTO;
 import com.ajemi.barber.Ta7li9_app.dto.ServiceResponseDTO;
+import com.ajemi.barber.Ta7li9_app.entity.AppointmentItem;
 import com.ajemi.barber.Ta7li9_app.entity.ServiceEntity;
 import com.ajemi.barber.Ta7li9_app.entity.User;
+import com.ajemi.barber.Ta7li9_app.repository.AppointmentItemRepository;
 import com.ajemi.barber.Ta7li9_app.repository.ServiceRepository;
 import com.ajemi.barber.Ta7li9_app.repository.UserRepository;
 
@@ -24,6 +30,8 @@ public class ServicesBarberService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AppointmentItemRepository appointmentItemRepository;
 
     public ServiceResponseDTO addService(ServiceRequestDTO dto, Long coiffeurId) {
         User coiffeur = userRepository.findById(coiffeurId)
@@ -99,5 +107,32 @@ public class ServicesBarberService {
         }
         return hours + "h " + remainingMinutes + "min";
     }
+    @Transactional
+    public List<Map<String, Object>> getClientCustomServices(Long barberId, Long clientId) {
+        
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        // 1. Njibou les services dyal l-coiffeur
+        List<ServiceEntity> barberServices = serviceRepository.findByCoiffeurId(barberId); 
 
+        // 2. N-souwlou l-Database
+        for (ServiceEntity srv : barberServices) {
+            
+            Optional<AppointmentItem> latestItem = appointmentItemRepository
+                .findFirstByAppointmentClientIdAndServiceIdAndStatusAndActualDurationIsNotNullOrderByEndTimeDesc(
+                    clientId, 
+                    srv.getId(), 
+                    "COMPLETED"
+                );
+
+            latestItem.ifPresent(item -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("serviceId", srv.getId());
+                map.put("customDuration", item.getActualDuration());
+                result.add(map);
+            });
+        }
+
+        return result;
+    }
 }

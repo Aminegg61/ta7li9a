@@ -1,5 +1,7 @@
 package com.ajemi.barber.Ta7li9_app.controller;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,9 +32,9 @@ public class BarberController {
      
     @GetMapping("/status")
     // @PreAuthorize("hasRole('COIFFEUR')")
-    public ResponseEntity<String> getStatus(@AuthenticationPrincipal UserPrincipal currentUser) {
-        String status = barberService.getBarberStatus(currentUser.getId());
-        return ResponseEntity.ok(status);
+    public ResponseEntity<Map<String, Object>> getStatus(@AuthenticationPrincipal UserPrincipal currentUser) {
+        Map<String, Object> statusData = barberService.getBarberStatus(currentUser.getId());
+        return ResponseEntity.ok(statusData);
     }    
 
     @PostMapping("/pause")

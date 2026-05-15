@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy,NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -137,15 +137,30 @@ import { AuthService } from '../../../services/auth';
                   </div>
 
                   <div *ngIf="barber.inQueue">
-                    <p *ngIf="barber.queuePosition === 0" class="font-black text-xl text-green-500 animate-pulse">
-                      NEXT
-                      <span class="text-[10px] text-green-500/70 ml-1 uppercase tracking-widest">in chair</span>
-                    </p>
                     
-                    <p *ngIf="barber.queuePosition > 0" class="font-black text-xl text-yellow-500">
-                      {{ barber.queuePosition }}
-                      <span class="text-[10px] text-neutral-500 ml-1 uppercase tracking-widest">ahead of you</span>
+                    <!-- 1. Ila kan gals fel koursi kiy-7ssen (IN_PROGRESS) -->
+                    <p *ngIf="getAcceptedApp()?.barberId === barber.id && getAcceptedApp()?.status === 'IN_PROGRESS'" class="font-black text-xl text-yellow-500 animate-pulse">
+                      NOW
+                      <span class="text-[10px] text-yellow-500/70 ml-1 uppercase tracking-widest"> In The Chair...</span>
                     </p>
+
+                    <!-- 2. Ila kan yalah kiy-tsenna (WAITING) -->
+                    <ng-container *ngIf="!(getAcceptedApp()?.barberId === barber.id && getAcceptedApp()?.status === 'IN_PROGRESS')">
+                      
+                      <!-- Hwa li taba3 (Position 0) -->
+                      <p *ngIf="barber.queuePosition === 0" class="font-black text-xl text-green-500 animate-pulse">
+                        NEXT
+                        <span class="text-[10px] text-green-500/70 ml-1 uppercase tracking-widest">get ready</span>
+                      </p>
+                      
+                      <!-- Baqi b3id (Position > 0) -->
+                      <p *ngIf="barber.queuePosition > 0" class="font-black text-xl text-yellow-500">
+                        {{ barber.queuePosition }}
+                        <span class="text-[10px] text-neutral-500 ml-1 uppercase tracking-widest">ahead of you</span>
+                      </p>
+
+                    </ng-container>
+
                   </div>
                 </div>
 
@@ -156,7 +171,7 @@ import { AuthService } from '../../../services/auth';
                   <p class="font-black text-xl text-yellow-500">
                     {{ formatWaitTime(barber.estimatedWaitTime) }}
                   </p>
-                  </div>
+                </div>
 
               </div>
 
@@ -261,17 +276,21 @@ import { AuthService } from '../../../services/auth';
               Loading services or barber has no services set.
             </div>
 
-            <label *ngFor="let srv of barberServices" 
+            <!-- 🔥 L-FIX 1: Bdelna barberServices b displayServices -->
+            <label *ngFor="let srv of displayServices" 
                    class="flex items-center gap-3 bg-neutral-950 border border-neutral-800 p-4 rounded-2xl cursor-pointer hover:border-neutral-600 transition-all"
                    [ngClass]="{'border-yellow-500 bg-yellow-500/5': selectedServices.includes(srv.id)}">
               <input type="checkbox" [value]="srv.id" (change)="toggleService(srv.id)" class="accent-yellow-500 w-4 h-4">
               <div class="flex-1">
                 <p class="font-bold text-sm">{{ srv.name }}</p>
                 <div class="flex items-center gap-2 mt-1">
-                  <span class="text-[10px] font-black uppercase font-bold text-neutral-500">{{ srv.duration }}</span>
+                  <span class="text-[10px] font-black uppercase text-neutral-500">{{ srv.duration }}</span>
+                  
+                  <!-- 🔥 L-FIX 2: Zidna l-blaka dyal CUSTOM hna -->
+                  <span *ngIf="srv.isCustom" class="text-[8px] font-black uppercase bg-green-500/20 text-green-500 px-1.5 py-0.5 rounded">CUSTOM</span>
+                  
                 </div>
               </div>
-
             </label>
           </div>
 
@@ -364,6 +383,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
   serviceSelectOpen = false;
   targetBarberId: number | null = null;
   barberServices: ServiceResponseDTO[] = [];
+  displayServices: any[] = [];
   selectedServices: number[] = [];
   userAppointments: AppointmentResponseDTO[] = [];
   // private subscriptions: Subscription[] = [];
@@ -378,6 +398,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
     private appointmentService: AppointmentService,
     private catalogService: ServiceCatalogService,
     private cdr: ChangeDetectorRef,
+    private zone: NgZone,
   ) {}
 
   ngOnInit() {
@@ -447,13 +468,17 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
   initUserWebSocket() {
     if (this.currentUser && this.currentUser.id) {
-      // Subscribe l l-topic dyal had l-user b-dabt
       const sub = this.ws.subscribeToUser(this.currentUser.id).subscribe(msg => {
         console.log("WebSocket Message received for User:", msg);
+        
         if (msg === 'QUEUE_UPDATED') {
-          // Tsenna nos saniya bach Backend y-commit-i l-DB
-          
-          setTimeout(() => this.loadMyStatus(), 500);
+          // 1. N-tsennaw 1.5 sanya t-tsajjel f DB
+          setTimeout(() => {
+            // 2. 🔥 Hna 3ad n-fiyyqou Angular bach y-rsem chacha
+            this.zone.run(() => {
+              this.loadMyStatus();
+            });
+          }, 500); 
         }
       });
       this.userSubs.push(sub);
@@ -477,7 +502,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
   loadMyStatus() {
     this.appointmentService.getMyActiveAppointment().subscribe(res => {
       if (this.serviceSelectOpen) return;
-      
+      console.log("Data li jat mn DB ba3d l-message:", res);
       // Daba res wellat Array []
       this.userAppointments = res; 
       
@@ -561,9 +586,12 @@ export class ClientDashboard implements OnInit, OnDestroy {
         console.log("Signal wsel men 3nd l-barber " + b.id + " :", msg);
         
         // 🔥 Hada hwa s-ser: melli y-wsel signal, tsenna chwiya w 3iyyet l-API t-jib l-jdid
-        setTimeout(() => {
-          this.refreshBarberData();
-        }, 500);
+          setTimeout(() => {
+            // 🔥 Fiyyeq Angular!
+            this.zone.run(() => {
+              this.refreshBarberData();
+            });
+          }, 500);
       });
 
       this.barberSubs.push(sub);
@@ -600,7 +628,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
       const updateBarberTime = (b: any) => {
         // 1. N-checkiw wach l-coiffeur m-beddi l-khdma (Khddam f chi wahed daba)
         // ⚠️ HNA: T2ekked mn s-smiya d status li katti-wlli 3ndu melli kiy-wrek 3la START
-        const isWorking = b.displayStatus === 'BUSY' || b.currentStatus === 'FULL';
+        const isWorking = b.displayStatus === 'Working';
 
         if (b.targetTime) {
           if (isWorking) {
@@ -629,6 +657,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
 
   getStatusColor(status: string) {
     if (status === 'ACTIVE') return 'bg-green-500';
+    if (status === 'ON_BREAK') return 'bg-yellow-500';
     if (status === 'FULL') return 'bg-orange-500';
     return 'bg-neutral-600';
   }
@@ -639,9 +668,8 @@ export class ClientDashboard implements OnInit, OnDestroy {
   //   return 'text-neutral-500';
   // }
   getStatusTextColor(status: string) {
-    if (status === 'OPEN') return 'text-green-500';
-    if (status === 'ON_BREAK') return 'text-yellow-500';
-    if (status === 'BUSY' || status === 'FULL') return 'text-orange-500';
+    if (status === 'OPEN' || status === 'Working') return 'text-green-500';
+    if (status === 'ON_BREAK') return 'text-yellow-500';  
     return 'text-neutral-500'; // CLOSED
   }
 
@@ -684,21 +712,43 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
 
   // --- Appointment Request ---
-  openServiceSelection(barberId: number) {
-    console.log(this.serviceSelectOpen);
-    
+openServiceSelection(barberId: number) {
     this.targetBarberId = barberId;
     this.selectedServices = [];
     this.barberServices = [];
+    this.displayServices = []; // n-khewiwha f l-lowel
+
+    // 1. Jib l-khedmat l-3adiyin dyal l-barber
     this.catalogService.getBarberServices(barberId).subscribe(res => {
-    console.log("SERVICES:", res); // 👈 مهم
-    this.barberServices = res;
-    this.serviceSelectOpen = true;   
-    this.cdr.detectChanges();
-  });
-
-
-
+      this.barberServices = res;
+      
+      // 2. Jib l-awqat l-mkhasssa dyal had l-klyan
+      this.barberService.getMyCustomTimesForBarber(barberId).subscribe({
+        next: (customData: any[]) => {
+          // 3. Khlet l-3adi m3a l-mkhasses
+          this.displayServices = this.barberServices.map(defaultSrv => {
+            const custom = customData.find(c => c.serviceId === defaultSrv.id);
+            if (custom && custom.customDuration) {
+              return { 
+                ...defaultSrv, 
+                duration: custom.customDuration + ' MIN', // Zidna MIN bach t-bqa m-qadda
+                isCustom: true 
+              };
+            }
+            return { ...defaultSrv, isCustom: false };
+          });
+          
+          this.serviceSelectOpen = true;   
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          // Ila wqe3 mochkil wla makanch waqt mkhasses, khelli l-3adi
+          this.displayServices = this.barberServices.map(s => ({...s, isCustom: false}));
+          this.serviceSelectOpen = true;   
+          this.cdr.detectChanges();
+        }
+      });
+    });
   }
 
   toggleService(id: number) {
@@ -737,7 +787,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
         
         this.serviceSelectOpen = false;
          this.cdr.detectChanges();
-        this.loadLists();
+        //this.loadLists();
       }
     });
   }
@@ -756,7 +806,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
       });
     }
   }
-    formatWaitTime(minutes: number | null): string {
+  formatWaitTime(minutes: number | null): string {
     if (minutes === null || minutes === undefined) return "0min";
     if (minutes < 60) return minutes + "min";
     

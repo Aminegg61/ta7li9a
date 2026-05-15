@@ -17,7 +17,6 @@ import com.ajemi.barber.Ta7li9_app.dto.AppointmentResponseDTO;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentEntity;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentItem;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentStatus;
-import com.ajemi.barber.Ta7li9_app.entity.BarberStatus;
 import com.ajemi.barber.Ta7li9_app.entity.ServiceEntity;
 import com.ajemi.barber.Ta7li9_app.entity.User;
 import com.ajemi.barber.Ta7li9_app.repository.AppointmentItemRepository;
@@ -50,8 +49,8 @@ public class AppointmentService {
         
         if (!filteredHistory.isEmpty()) {
             return filteredHistory;
-    }
-        
+        }
+
         // Stage 2: Ila malqiti walou f l-History
         if (query.matches("\\d{10}")) { 
             // Kan-mchiw l l-UserRepository n-qelbou b n-nemra
@@ -441,16 +440,16 @@ public class AppointmentService {
         updateFutureAppointments(app.getCoiffeur().getId(), now);
 
         // 4. N-checkiw wach l-coiffeur baqi khddam f chi wa7ed khor
-        Optional<AppointmentEntity> baqiKhdam = appointmentRepository
-                .findTopByCoiffeurIdAndStatusInOrderByEndTimeDesc(
-                    app.getCoiffeur().getId(), 
-                    List.of(AppointmentStatus.IN_PROGRESS)
-                );
+        // Optional<AppointmentEntity> baqiKhdam = appointmentRepository
+        //         .findTopByCoiffeurIdAndStatusInOrderByEndTimeDesc(
+        //             app.getCoiffeur().getId(), 
+        //             List.of(AppointmentStatus.IN_PROGRESS)
+        //         );
 
-        if (baqiKhdam.isEmpty() && app.getCoiffeur().getCurrentStatus() == BarberStatus.FULL) {
-            app.getCoiffeur().setCurrentStatus(BarberStatus.ACTIVE);
-            userRepository.save(app.getCoiffeur());
-        }
+        // if (baqiKhdam.isEmpty() && app.getCoiffeur().getCurrentStatus() == BarberStatus.FULL) {
+        //     app.getCoiffeur().setCurrentStatus(BarberStatus.ACTIVE);
+        //     userRepository.save(app.getCoiffeur());
+        // }
         
         // 5. Notifications
         if (app.getClient() != null) {
@@ -466,14 +465,13 @@ public class AppointmentService {
         
         // 1. Jib ghir l-Appointments li m7tajin l-khdma (bla COMPLETED)
         List<AppointmentEntity> activeApps = appointmentRepository.findByCoiffeurIdAndStatusIn(
-        coiffeurId, 
-        List.of(AppointmentStatus.PENDING, AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
+            coiffeurId, 
+            List.of(AppointmentStatus.PENDING, AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
         );
 
         // 2. Rttebhom b l-waqt dyalhom
         List<AppointmentEntity> sortedApps = activeApps.stream()
-            
-        .sorted((a, b) -> {
+            .sorted((a, b) -> {
                 // Sort: PENDING y-jiw l-foq (wallah 7tarem l-weqt li dejà m-calculé)
                 if (a.getStartTime() == null || b.getStartTime() == null) return 0;
                 return a.getStartTime().compareTo(b.getStartTime());

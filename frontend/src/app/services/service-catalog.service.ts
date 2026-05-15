@@ -7,8 +7,7 @@ import { ServiceResponseDTO } from '../models/interfaces';
   providedIn: 'root'
 })
 export class ServiceCatalogService {
-  // 🚨 HNA L-FIX: Zdna /api/services f l-kher
-  private baseUrl = 'https://ta7li9a-backend.onrender.com/api/services';
+  private baseUrl = 'http://localhost:8080/api/services';
 
   constructor(private http: HttpClient) {}
 
@@ -30,5 +29,10 @@ export class ServiceCatalogService {
 
   deleteService(id: number): Observable<string> {
     return this.http.delete(`${this.baseUrl}/delete/${id}`, { responseType: 'text' }) as Observable<string>;
+  }
+  // 🔥 Zid hadi bach t-jib l-waqt l-mkhasses dyal klyan
+  getClientCustomServices(clientId: number): Observable<any[]> {
+    // n-ferdou anaka ghadi t-ssammi l-endpoint f Java hakka:
+    return this.http.get<any[]>(`${this.baseUrl}/custom/${clientId}`);
   }
 }

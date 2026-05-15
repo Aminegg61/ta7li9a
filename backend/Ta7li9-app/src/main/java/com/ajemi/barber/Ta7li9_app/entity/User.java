@@ -48,4 +48,6 @@ public class User {
     private BarberStatus currentStatus = BarberStatus.OFFLINE;
     @Column(name = "last_pause_time")
     private LocalDateTime lastPauseTime;
+    @Column(name = "is_paused", columnDefinition = "boolean default false")
+    private Boolean isPaused = false;
 }

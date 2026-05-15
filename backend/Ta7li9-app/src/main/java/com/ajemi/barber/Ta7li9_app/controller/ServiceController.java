@@ -1,6 +1,7 @@
 package com.ajemi.barber.Ta7li9_app.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,8 @@ import jakarta.validation.Valid;
 public class ServiceController {
     @Autowired
     private ServicesBarberService serviceService;
-
+    @Autowired
+    private ServicesBarberService servicesBarberService;
     @PostMapping("/add")
     public ResponseEntity<ServiceResponseDTO> addService(
             @Valid @RequestBody ServiceRequestDTO requestDTO,
@@ -71,5 +73,17 @@ public class ServiceController {
                 @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<List<ServiceResponseDTO>> getBarberServices(@PathVariable Long coiffeurId) {
         return ResponseEntity.ok(serviceService.getCoiffeurServices(coiffeurId));
+    }
+    @GetMapping("/custom/{clientId}")
+    // @PreAuthorize("hasRole('COIFFEUR')")
+    public ResponseEntity<List<Map<String, Object>>> getClientCustomServices(
+            @PathVariable Long clientId,
+            @AuthenticationPrincipal UserPrincipal currentUser) {
+            
+        // N-3yytou l-service bach y-7seb l-waqt
+        List<Map<String, Object>> customDurations = 
+                servicesBarberService.getClientCustomServices(currentUser.getId(), clientId);
+                
+        return ResponseEntity.ok(customDurations);
     }
 }

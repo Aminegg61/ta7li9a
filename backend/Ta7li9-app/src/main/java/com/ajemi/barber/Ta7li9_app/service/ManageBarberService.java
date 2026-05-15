@@ -13,7 +13,6 @@ import com.ajemi.barber.Ta7li9_app.dto.BarberSearchDto;
 import com.ajemi.barber.Ta7li9_app.dto.QueueInfoDto;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentEntity;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentStatus;
-import com.ajemi.barber.Ta7li9_app.entity.BarberStatus;
 import com.ajemi.barber.Ta7li9_app.entity.FollowedBarber;
 import com.ajemi.barber.Ta7li9_app.entity.User;
 import com.ajemi.barber.Ta7li9_app.repository.AppointmentRepository;
@@ -156,8 +155,8 @@ public class ManageBarberService {
         // Sa3a d-daba par defaut
         LocalDateTime referenceTime = LocalDateTime.now(); 
 
-        // 🔥 2. L-QALEB: Ila kan ON_BREAK, jammed l-waqt f sa3a fach t-pawza!
-        if (barber != null && barber.getCurrentStatus() == BarberStatus.ON_BREAK && barber.getLastPauseTime() != null) {
+        // 🔥 2. L-QALEB: Daba kan-qrawha men getIsPaused() blast currentStatus!
+        if (barber != null && Boolean.TRUE.equals(barber.getIsPaused()) && barber.getLastPauseTime() != null) {
             referenceTime = barber.getLastPauseTime(); // Waqt m-bloki ❄️
         }
 
@@ -184,7 +183,7 @@ public class ManageBarberService {
                 if (remaining > 0) {
                     totalMinutes += remaining;
                 }
-            }else {
+            } else {
                 // 🔥 L-FIX: N-7esbou 'duration' b 'estimatedDuration' l-m-personnalisée
                 int duration = appointment.getAppointmentItems()
                         .stream()

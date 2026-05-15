@@ -1,6 +1,7 @@
 package com.ajemi.barber.Ta7li9_app.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ajemi.barber.Ta7li9_app.dto.BarberSearchDto;
 import com.ajemi.barber.Ta7li9_app.security.UserPrincipal;
 import com.ajemi.barber.Ta7li9_app.service.ManageBarberService;
+import com.ajemi.barber.Ta7li9_app.service.ServicesBarberService;
 
 @RestController
 @RequestMapping("/api/barbers")
@@ -25,6 +27,8 @@ import com.ajemi.barber.Ta7li9_app.service.ManageBarberService;
 public class ManageBarberForClientController {
     @Autowired
     private ManageBarberService manageBarberService;
+    @Autowired 
+    private ServicesBarberService servicesBarberService;
     @GetMapping("/search")
     public ResponseEntity<List<BarberSearchDto>> searchBarbers(@RequestParam("q") String query,
         @AuthenticationPrincipal UserPrincipal currentUser) {
@@ -70,5 +74,17 @@ public class ManageBarberForClientController {
         
         manageBarberService.toggleFavoriteStatus(currentUser.getId(), barberId);
         return ResponseEntity.ok().build();
+    }
+    // 🔥 Hadi dyal l-Client: ki-jbed biha l-awqat l-mkhasssa dyalo 3nd chi 7ellaq
+    @GetMapping("/my-custom-times/{barberId}")
+    public ResponseEntity<List<Map<String, Object>>> getMyCustomTimes(
+            @PathVariable Long barberId,
+            @AuthenticationPrincipal UserPrincipal currentUser) { // Hna currentUser howa l-Client
+            
+        // Kanhdmo b nfs l-methode li sayebna 9bila! (barberId, clientId)
+        List<Map<String, Object>> customDurations = 
+                servicesBarberService.getClientCustomServices(barberId, currentUser.getId());
+                
+        return ResponseEntity.ok(customDurations);
     }
 }

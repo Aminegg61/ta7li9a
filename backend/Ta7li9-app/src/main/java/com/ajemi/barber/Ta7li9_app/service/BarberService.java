@@ -2,7 +2,9 @@ package com.ajemi.barber.Ta7li9_app.service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -77,13 +79,14 @@ public class BarberService {
     private  static BarberStatus fromString(String value) {
         return BarberStatus.valueOf(value.toUpperCase());
     }
-    public String getBarberStatus(Long coiffeurId) {
+    public Map<String, Object> getBarberStatus(Long coiffeurId) {
         User barber = userRepository.findById(coiffeurId)
             .orElseThrow(() -> new RuntimeException("Barber ma-lqinahch!"));
-        
-        // Suwwel rassek: wach l-status smitou 'currentStatus' walla 'status' f l-Entity dyalk?
-        // 3la 7sab l-logs li sifti qbel, rak msemih 'current_status'
-        return barber.getCurrentStatus().toString(); 
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", barber.getCurrentStatus().toString());
+        response.put("isPaused", barber.getIsPaused() != null ? barber.getIsPaused() : false);
+
+        return response;
     }
 
     // 🔥 Hadi hiyya l-logic li ghat-tla3 l-Client f Front-end
@@ -96,17 +99,17 @@ public class BarberService {
         }
         
         // 2. L-Coiffeur dar FULL b yddou (3amar w ma-bghach y-zido nas)
-        if (barber.getCurrentStatus() == BarberStatus.FULL) {
-            return "FULL"; 
-        }
+        // if (barber.getCurrentStatus() == BarberStatus.FULL) {
+        //     return "FULL"; 
+        // }
 
         // 🔥 L-JDID: L-Coiffeur dar Pause b yddou (Manual Pause)
-        if (barber.getCurrentStatus() == BarberStatus.ON_BREAK) {
+        if (Boolean.TRUE.equals(barber.getIsPaused())) {
             return "ON_BREAK";
         }
 
         // 3. Ila kan ACTIVE, hna kiy-tdkhl l-logic dyal n-nouba (Auto-Status)
-        if (barber.getCurrentStatus() == BarberStatus.ACTIVE) {
+        if (barber.getCurrentStatus() == BarberStatus.ACTIVE || barber.getCurrentStatus() == BarberStatus.FULL) {
             
             // Jbed n-nouba dyal lyoma
             List<AppointmentEntity> activeQueue = appointmentRepository.findByCoiffeurIdAndStatusIn(
@@ -114,8 +117,13 @@ public class BarberService {
                 List.of(AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
             );
 
-            // A: 0 in queue == OPEN
+            // A: 0 in queue
             if (activeQueue.isEmpty()) {
+                // 🔥 L-FIX: Ila kan l-coiffeur dayr FULL b yeddou w sala n-nouba, 
+                // n-affichiou l-klyan "ON_BREAK" blast "OPEN"
+                if (barber.getCurrentStatus() == BarberStatus.FULL) {
+                    return "ON_BREAK"; 
+                }
                 return "OPEN"; 
             }
 
@@ -128,7 +136,7 @@ public class BarberService {
                 return "ON_BREAK"; 
             } else {
                 // D: 3ndou nas w zaydon khddam f chi wa7ed daba f l-korsi
-                return "BUSY"; 
+                return "Working"; 
             }
         }
 
@@ -140,7 +148,7 @@ public class BarberService {
                 .orElseThrow(() -> new RuntimeException("Coiffeur malqinahch"));
         
         // Reddo f wqt r-raha f DB
-        coiffeur.setCurrentStatus(BarberStatus.ON_BREAK);
+        coiffeur.setIsPaused(true);
         coiffeur.setLastPauseTime(LocalDateTime.now()); 
         userRepository.saveAndFlush(coiffeur);
         
@@ -150,7 +158,8 @@ public class BarberService {
 
     @Transactional
     public void resumeWork(Long coiffeurId) {
-        User coiffeur = userRepository.findById(coiffeurId).orElseThrow();
+        User coiffeur = userRepository.findById(coiffeurId)
+        .orElseThrow(() -> new RuntimeException("Coiffeur malqinahch"));
         LocalDateTime now = LocalDateTime.now();
 
         if (coiffeur.getLastPauseTime() != null) {
@@ -176,7 +185,7 @@ public class BarberService {
                 });
         }
 
-        coiffeur.setCurrentStatus(BarberStatus.ACTIVE);
+        coiffeur.setIsPaused(false);
         coiffeur.setLastPauseTime(null); 
         userRepository.saveAndFlush(coiffeur);
         

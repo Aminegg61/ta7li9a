@@ -67,8 +67,8 @@ import { ChangeDetectorRef } from '@angular/core';
             <span class="w-2 h-2 rounded-full" [ngClass]="{'bg-green-500 animate-pulse': currentStatus === 'ACTIVE', 'bg-orange-500': currentStatus === 'FULL', 'bg-neutral-600': currentStatus === 'OFFLINE'}"></span>
             Current Status
           </p>
-
-                    <!-- الميساج ديال الخطأ (Error Message) -->
+          
+          <!-- الميساج ديال الخطأ (Error Message) -->
           <div *ngIf="statusErrorMessage" class="bg-red-900/20 border border-red-500/50 text-red-500 text-xs font-bold p-2 mb-4 rounded-xl">
             {{ statusErrorMessage }}
           </div>
@@ -79,10 +79,10 @@ import { ChangeDetectorRef } from '@angular/core';
               [ngClass]="currentStatus === 'ACTIVE' ? 'bg-green-500 text-black shadow-lg scale-105' : 'text-neutral-500 hover:text-white'">
               ACTIVE
             </button>
-
+            
             <!-- زر FULL معدل -->
             <button (click)="setStatus('FULL')" 
-              [disabled]="activeQueue.length === 0"
+              [disabled]="activeQueue.length === 0 && currentStatus !== 'FULL'"
               class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               [ngClass]="currentStatus === 'FULL' ? 'bg-orange-500 text-black shadow-lg scale-105' : 'text-neutral-500 hover:text-white'">
               FULL
@@ -174,14 +174,14 @@ import { ChangeDetectorRef } from '@angular/core';
                   <!-- 2. SCÉNARIO 1 SERVICE (IN_PROGRESS) -> Kiyban DONE, PAUSE w RESUME -->
                   <ng-container *ngIf="i === 0 && apt.status === 'IN_PROGRESS' && apt.items.length === 1">
                     
-                    <!-- ⏸️ PAUSE (Kiyban ila kan l-Coiffeur khddam) -->
-                    <button *ngIf="currentStatus !== 'ON_BREAK'" (click)="pause()" title="Pause Haircut"
+                    <!-- ⏸️ PAUSE -->
+                    <button *ngIf="!isPaused" (click)="pause()" title="Pause Haircut"
                       class="bg-orange-500/20 text-orange-500 font-black uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl hover:bg-orange-500 hover:text-black transition-all shadow-[0_0_10px_rgba(249,115,22,0.3)]">
                       ⏸️ PAUSE
                     </button>
 
-                    <!-- ▶️ RESUME (Kiyban ila kan l-7sana m-pawzya) -->
-                    <button *ngIf="currentStatus === 'ON_BREAK'" (click)="resume()" title="Resume Haircut"
+                    <!-- ▶️ RESUME -->
+                    <button *ngIf="isPaused" (click)="resume()" title="Resume Haircut"
                       class="bg-blue-500/20 text-blue-500 font-black uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse">
                       ▶️ RESUME
                     </button>
@@ -210,8 +210,8 @@ import { ChangeDetectorRef } from '@angular/core';
                   
                   <!-- ⏸️ PAUSE / ▶️ RESUME L-HAD L-KLYAN -->
                   <div class="flex gap-2">
-                    <button *ngIf="currentStatus !== 'ON_BREAK'" (click)="pause()" class="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-500/10 px-2 py-1 rounded">⏸️ Pause</button>
-                    <button *ngIf="currentStatus === 'ON_BREAK'" (click)="resume()" class="text-[9px] font-black uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2 py-1 rounded animate-pulse">▶️ Resume</button>
+                    <button *ngIf="!isPaused" (click)="pause()" class="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-500/10 px-2 py-1 rounded">⏸️ Pause</button>
+                    <button *ngIf="isPaused" (click)="resume()" class="text-[9px] font-black uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2 py-1 rounded animate-pulse">▶️ Resume</button>
                   </div>
                 </div>
                 
@@ -254,10 +254,10 @@ import { ChangeDetectorRef } from '@angular/core';
             <!-- Client Search -->
             <div class="space-y-2">
               <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Search Client / Phone</label>
-
-                            <!-- زدنـا [disabled] باش تـطفى إلى كان Guest مكتوب -->
+              
+              <!-- زدنـا [disabled] باش تـطفى إلى كان Guest مكتوب -->
               <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchClients($event)" 
-                              [disabled]="manualName.trim().length > 0"
+                [disabled]="manualName.trim().length > 0"
                 class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed" 
                 placeholder="Type name or 10-digit phone...">
               
@@ -266,39 +266,48 @@ import { ChangeDetectorRef } from '@angular/core';
                         (click)="selectUser(user)"
                         [disabled]="isUserInQueue(user.id)"
                         class="w-full text-left px-3 py-2 rounded-lg transition-colors flex justify-between items-center"
-                        [ngClass]="{'opacity-50 grayscale cursor-not-allowed bg-red-900/10': isUserInQueue(user.id), 'hover:bg-neutral-800': !isUserInQueue(user.id)}">                  
-                        
+                        [ngClass]="{'opacity-50 grayscale cursor-not-allowed bg-red-900/10': isUserInQueue(user.id), 'hover:bg-neutral-800': !isUserInQueue(user.id)}">
+                  
                   <span class="font-bold text-sm">{{ user.firstName }} {{ user.lastName }}</span>
                   <span *ngIf="isUserInQueue(user.id)" class="text-[8px] font-black bg-red-500 text-white px-2 py-1 rounded italic uppercase">Already in Queue</span>
                   <span *ngIf="!isUserInQueue(user.id)" class="text-xs text-neutral-500">{{ user.phoneNumber }}</span>
                 </button>
               </div>
 
-              <!-- Guest entry -->
+<!-- Guest entry -->
               <div class="mt-4 pt-4 border-t border-neutral-800 space-y-2">
                 <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Or enter guest name</label>
-
-                                <!-- زدنـا [disabled] باش تـطفى إلى اختارينا كليان -->
-                <input type="text" [(ngModel)]="manualName" (input)="manualClientId = null; searchResults = []"
+                
+                <!-- 🔥 L-FIX: Zidna (input)="onGuestInput()" hna -->
+                <input type="text" [(ngModel)]="manualName" (input)="onGuestInput()"
                   [disabled]="manualClientId !== null"
                   class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed" 
                   placeholder="Guest Name">
               </div>
             </div>
 
-            <!-- Service Selection -->
+<!-- Service Selection -->
             <div class="space-y-2">
               <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Select Services</label>
               <div class="space-y-2">
-                <label *ngFor="let srv of myServices" 
+                
+                <!-- 🔥 L-FIX 1: Bdelna myServices b displayServices -->
+                <label *ngFor="let srv of displayServices" 
                        class="flex items-center gap-3 bg-neutral-950 border border-neutral-800 p-3 rounded-xl cursor-pointer hover:border-neutral-600 transition-all"
                        [ngClass]="{'border-yellow-500 bg-yellow-500/5': selectedServiceIds.includes(srv.id)}">
                   <input type="checkbox" [value]="srv.id" (change)="toggleService(srv.id)" class="accent-yellow-500 w-4 h-4">
                   <div class="flex-1">
                     <p class="font-bold text-sm">{{ srv.name }}</p>
-                    <p class="text-xs text-neutral-500">{{ srv.duration }}</p>
+                    
+                    <!-- 🔥 L-FIX 2: Zidna zwa9a dyal CUSTOM ila kan l-waqt m-beddel -->
+                    <p class="text-xs text-neutral-500 flex items-center gap-2">
+                      {{ srv.duration }} 
+                      <span *ngIf="srv.isCustom" class="text-[8px] font-black uppercase bg-green-500/20 text-green-500 px-1 py-0.5 rounded">Custom</span>
+                    </p>
+                    
                   </div>
                 </label>
+                
               </div>
             </div>
           </div>
@@ -330,7 +339,7 @@ import { ChangeDetectorRef } from '@angular/core';
               <div>
                 <p class="font-bold text-white">{{ srv.name }}</p>
                 <p class="text-xs font-bold text-neutral-500">{{ srv.duration }}</p>
-                </div>
+              </div>
               <button (click)="deleteService(srv.id)" class="text-red-500 hover:text-red-400 p-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               </button>
@@ -358,7 +367,8 @@ import { ChangeDetectorRef } from '@angular/core';
   `
 })
 export class BarberDashboard implements OnInit {
-  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE' | 'ON_BREAK' = 'OFFLINE';
+  currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE'  = 'OFFLINE';
+  isPaused: boolean = false;
   statusErrorMessage: string = '';
   currentUser: any;
   activeQueue: AppointmentResponseDTO[] = [];
@@ -368,6 +378,7 @@ export class BarberDashboard implements OnInit {
   servicesModalOpen = false;
 
   myServices: ServiceResponseDTO[] = [];
+  displayServices: any[] = [];
   
   // Manual Add state
   searchQuery = '';
@@ -419,12 +430,12 @@ export class BarberDashboard implements OnInit {
 
   loadCurrentStatus() {
     this.barberService.getCurrentStatus().subscribe({
-      next: (status: any) => {
+      next: (res: any) => {
         // Takked beli status katchbah l 'ACTIVE', 'FULL' walla 'OFFLINE'
         
-        this.currentStatus = status;
-        console.log(this.currentStatus);
-      },
+        this.currentStatus = res.status;
+        this.isPaused = res.isPaused; 
+         console.log("Status:", this.currentStatus, "| Paused:", this.isPaused);      },
       error: (err) => {
         console.error("Ma-qdrnach njibo l-status", err);
       }
@@ -442,6 +453,8 @@ export class BarberDashboard implements OnInit {
     // --- الشرط الأول: مايمكنش دير FULL والصف خاوي ---
     if (st === 'FULL' && this.activeQueue.length === 0) {
       this.statusErrorMessage = "Ma tqderch tdir FULL w n-nouba khawya!";
+      console.log(this.statusErrorMessage);
+      
       setTimeout(() => this.statusErrorMessage = '', 3000); // حيد الميساج من بعد 3 ثواني
       return;
     }
@@ -470,7 +483,7 @@ export class BarberDashboard implements OnInit {
         this.statusErrorMessage = "Wqe3 chi mochkil, 3awd jerreb.";
         console.error("Error updating status:", err);
       }
-  });
+    });
   }
 
   loadQueue() {
@@ -509,7 +522,16 @@ export class BarberDashboard implements OnInit {
   loadServices() {
     this.catalogService.getMyServices().subscribe(res => {
       this.myServices = res;
+      // 🔥 زدنا هاد السطر باش نعمروا displayServices فاش كيتشارجا الداشبورد
+      this.resetServiceDurations(); 
     });
+  }
+  // 🔥 هاد الميثود كترجع الخدمات للوقت الأصلي ديالهم (Default)
+  resetServiceDurations() {
+    this.displayServices = this.myServices.map(s => ({
+      ...s,
+      isCustom: false // هادي زدناها باش من بعد نقدرو نأفيشيو كلمة "Custom" فـ الشاشة
+    }));
   }
 
   startAppointment(id: number) {
@@ -547,11 +569,15 @@ export class BarberDashboard implements OnInit {
     this.manualClientId = null;
     this.manualName = '';
     this.selectedServiceIds = [];
+    // 🔥 Zid hadi bach dima l-modal yt7el b l-waqt l-3adi
+    this.resetServiceDurations();
   }
 
   onSearchClients(val: string) {
-        if (this.manualClientId) {
+    if (this.manualClientId) {
       this.manualClientId = null; 
+      // 🔥 Zid hadi: Ila msa7 l-klyan, rje3 l-waqt default
+      this.resetServiceDurations();
     }
     if (val.length > 2) {
       this.appointmentService.searchClients(val).subscribe(res => {
@@ -561,22 +587,53 @@ export class BarberDashboard implements OnInit {
       this.searchResults = [];
     }
   }
-
+  // 🔥 hadi ghadi t-khdem melli y-kteb Guest b yeddou
+  onGuestInput() {
+    this.manualClientId = null;
+    this.searchResults = [];
+    this.resetServiceDurations(); // rje3 l-waqt default
+  }
   selectUser(user: User) {
     // 1. Qelleb wach l-ID dyal had l-user dejà kayn f n-nouba
     const isAlreadyInQueue = 
       this.activeQueue.some(apt => apt.clientId === user.id) || 
       this.pendingRequests.some(apt => apt.clientId === user.id);
-      if (isAlreadyInQueue) {
-        alert("Had l-klyan dejà rah f n-nouba! Ma-tqderch t-zidou marra khor.");
-        this.searchQuery = '';
-        this.searchResults = [];
-        return; // 7bess hna
-      }
+      
+    if (isAlreadyInQueue) {
+      alert("Had l-klyan dejà rah f n-nouba! Ma-tqderch t-zidou marra khor.");
+      this.searchQuery = '';
+      this.searchResults = [];
+      return; // 7bess hna
+    }
+
+    // 2. 3zelna l-klyan w ms7na l-ba7t
     this.manualClientId = user.id;
     this.manualName = '';
     this.searchQuery = user.firstName + ' ' + user.lastName;
     this.searchResults = [];
+
+    // 🔥 3. L-QALEB HNA: Njibou l-waqt l-mkhasses dyal had l-klyan
+    this.catalogService.getClientCustomServices(user.id).subscribe({
+      next: (customData: any[]) => {
+        // N-bdelou l-waqt f displayServices
+        this.displayServices = this.myServices.map(defaultSrv => {
+          // n-qellbou wach had l-klyan 3ndou waqt jdid f had service
+          const custom = customData.find(c => c.serviceId === defaultSrv.id); 
+          
+          if (custom && custom.customDuration) {
+            // Ila lqah, bdel l-waqt w che3el 'isCustom'
+            return { ...defaultSrv, duration: custom.customDuration + ' min', isCustom: true };
+          }
+          
+          // Ila malqach waqt mkhasses l-had service, khellih Default
+          return { ...defaultSrv, isCustom: false };
+        });
+      },
+      error: (err) => {
+        console.error("Maqdernach njibou l-waqt l-mkhasses", err);
+        this.resetServiceDurations(); // Ila wqe3 mouchkil, rje3 l default
+      }
+    });
   }
 
   isUserInQueue(userId: number): boolean {
@@ -595,7 +652,7 @@ export class BarberDashboard implements OnInit {
 
   submitManualAdd() {
     if (this.selectedServiceIds.length === 0) return;
-        // 2. Khass y-koun ya imma Client sélectionné YA IMMA Guest Name m-ktoub
+    // 2. Khass y-koun ya imma Client sélectionné YA IMMA Guest Name m-ktoub
     if (!this.manualClientId && this.manualName.trim().length === 0) {
       alert("Khassk t-3zel klyan mn l-la2i7a awla t-kteb smiya d-Guest!");
       return;
@@ -655,9 +712,7 @@ export class BarberDashboard implements OnInit {
     this.barberService.pauseWork().subscribe({
       next: () => {
         console.log("⏸️ Break time!");
-        // N-bdel status 7ta njibo mn l-backend awla n-3ywtou l API
-        this.currentStatus = 'ON_BREAK';
-        this.loadCurrentStatus(); // Bach n-t2ekdou mn DB
+        this.isPaused = true;
       },
       error: (err) => console.error("Error pausing:", err)
     });
@@ -667,7 +722,7 @@ export class BarberDashboard implements OnInit {
     this.barberService.resumeWork().subscribe({
       next: () => {
         console.log("▶️ Back to work!");
-        this.loadCurrentStatus(); // Hada ghadi y-jib l-status l-jdid (ACTIVE wla FULL)
+        this.isPaused = false;
       },
       error: (err) => console.error("Error resuming:", err)
     });

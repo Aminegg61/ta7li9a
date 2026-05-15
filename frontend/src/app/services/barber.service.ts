@@ -7,50 +7,51 @@ import { BarberSearchDto } from '../models/interfaces';
   providedIn: 'root'
 })
 export class BarberService {
-  // Jme3na l-URL hna bach y-khdem l-kolchi (Barber w Client)
-  private baseUrl = 'https://ta7li9a-backend.onrender.com/api';
+  private baseUrl = 'http://localhost:8080/api/barber';
 
   constructor(private http: HttpClient) {}
 
   updateStatus(status: 'ACTIVE' | 'FULL' | 'OFFLINE'): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/barber/status?status=${status}`, {});
+    return this.http.put<void>(`${this.baseUrl}/status?status=${status}`, {});
   }
-  
-  getCurrentStatus(): Observable<string> {
-   return this.http.get(`${this.baseUrl}/barber/status`, { responseType: 'text' });
+  getCurrentStatus(): Observable<any> {
+   return this.http.get(`${this.baseUrl}/status`);
   }
 
-  // 🔥 Hna t-riglat l-URL dyal s-Search!
   searchBarbers(query: string): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>(`${this.baseUrl}/barbers/search?q=${query}`);
+    return this.http.get<BarberSearchDto[]>(`http://localhost:8080/api/barbers/search?q=${query}`);
   }
 
-  // 🔥 Hna t-riglat l-URL dyal Add Barber!
   addBarber(barberId: number): Observable<string> {
-    return this.http.post(`${this.baseUrl}/barbers/add-barber/${barberId}`, {}, { responseType: 'text' }) as Observable<string>;
+    // Expect text response or format appropriately based on your backend
+    return this.http.post('http://localhost:8080/api/barbers/add-barber/' + barberId, {}, { responseType: 'text' }) as Observable<string>;
   }
 
   getMyBarbers(): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>(`${this.baseUrl}/barbers/my-barbers`);
+    return this.http.get<BarberSearchDto[]>('http://localhost:8080/api/barbers/my-barbers');
   }
 
   getMyFavorites(): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>(`${this.baseUrl}/barbers/my-favorites`);
+    return this.http.get<BarberSearchDto[]>('http://localhost:8080/api/barbers/my-favorites');
   }
 
   removeBarber(barberId: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/barbers/remove-barber/${barberId}`);
+    return this.http.delete<void>(`http://localhost:8080/api/barbers/remove-barber/${barberId}`);
   }
 
   toggleFavorite(barberId: number): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/barbers/toggle-favorite/${barberId}`, {});
+    return this.http.put<void>(`http://localhost:8080/api/barbers/toggle-favorite/${barberId}`, {});
   }
-  
   pauseWork(): Observable<any> {
-    return this.http.post(`${this.baseUrl}/barber/pause`, {});
+    // T2ekked mn l-URL dyalk wach howa hada (masalan: baseUrl + '/barbers/pause')
+    return this.http.post(`${this.baseUrl}/pause`, {});
   }
 
   resumeWork(): Observable<any> {
-    return this.http.post(`${this.baseUrl}/barber/resume`, {});
+    return this.http.post(`${this.baseUrl}/resume`, {});
+  }
+  // 🔥 Zid hadi bach l-klyan y-jib weqto 3nd l-barber
+  getMyCustomTimesForBarber(barberId: number): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8080/api/barbers/my-custom-times/${barberId}`);
   }
 }
