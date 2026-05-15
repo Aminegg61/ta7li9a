@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BarberSearchDto } from '../models/interfaces';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BarberService {
-  private baseUrl = 'http://localhost:8080/api/barber';
+  private baseUrl = `${environment.apiUrl}/api/barber`;
 
   constructor(private http: HttpClient) {}
 
@@ -19,28 +20,28 @@ export class BarberService {
   }
 
   searchBarbers(query: string): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>(`http://localhost:8080/api/barbers/search?q=${query}`);
+    return this.http.get<BarberSearchDto[]>(`${environment.apiUrl}/api/barbers/search?q=${query}`);
   }
 
   addBarber(barberId: number): Observable<string> {
     // Expect text response or format appropriately based on your backend
-    return this.http.post('http://localhost:8080/api/barbers/add-barber/' + barberId, {}, { responseType: 'text' }) as Observable<string>;
+    return this.http.post(`${environment.apiUrl}/api/barbers/add-barber/` + barberId, {}, { responseType: 'text' }) as Observable<string>;
   }
 
   getMyBarbers(): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>('http://localhost:8080/api/barbers/my-barbers');
+    return this.http.get<BarberSearchDto[]>(`${environment.apiUrl}/api/barbers/my-barbers`);
   }
 
   getMyFavorites(): Observable<BarberSearchDto[]> {
-    return this.http.get<BarberSearchDto[]>('http://localhost:8080/api/barbers/my-favorites');
+    return this.http.get<BarberSearchDto[]>(`${environment.apiUrl}/api/barbers/my-favorites`);
   }
 
   removeBarber(barberId: number): Observable<void> {
-    return this.http.delete<void>(`http://localhost:8080/api/barbers/remove-barber/${barberId}`);
+    return this.http.delete<void>(`${environment.apiUrl}/api/barbers/remove-barber/${barberId}`);
   }
 
   toggleFavorite(barberId: number): Observable<void> {
-    return this.http.put<void>(`http://localhost:8080/api/barbers/toggle-favorite/${barberId}`, {});
+    return this.http.put<void>(`${environment.apiUrl}/api/barbers/toggle-favorite/${barberId}`, {});
   }
   pauseWork(): Observable<any> {
     // T2ekked mn l-URL dyalk wach howa hada (masalan: baseUrl + '/barbers/pause')
@@ -52,6 +53,6 @@ export class BarberService {
   }
   // 🔥 Zid hadi bach l-klyan y-jib weqto 3nd l-barber
   getMyCustomTimesForBarber(barberId: number): Observable<any[]> {
-    return this.http.get<any[]>(`http://localhost:8080/api/barbers/my-custom-times/${barberId}`);
+    return this.http.get<any[]>(`${environment.apiUrl}/api/barbers/my-custom-times/${barberId}`);
   }
 }

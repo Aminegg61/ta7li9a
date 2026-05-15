@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ServiceResponseDTO } from '../models/interfaces';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ServiceCatalogService {
-  private baseUrl = 'http://localhost:8080/api/services';
+  private baseUrl = `${environment.apiUrl}/api/services`;
 
   constructor(private http: HttpClient) {}
 
