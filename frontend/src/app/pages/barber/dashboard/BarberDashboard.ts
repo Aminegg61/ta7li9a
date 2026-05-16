@@ -122,8 +122,11 @@ import { ChangeDetectorRef } from '@angular/core';
         <section>
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-2xl font-black italic uppercase tracking-tighter">Today's Queue</h2>
-            <button (click)="openManualAdd()" class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-4 py-2 rounded-xl hover:bg-yellow-400 transition-all">
-              + Manual Add
+            <button (click)="openManualAdd()" 
+                [disabled]="currentStatus === 'OFFLINE'"
+                class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-4 py-2 rounded-xl transition-all 
+                       hover:bg-yellow-400 
+                       disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed disabled:hover:bg-yellow-500">              + Manual Add
             </button>
           </div>
 
@@ -563,6 +566,11 @@ export class BarberDashboard implements OnInit {
 
   // --- Manual Add Logic ---
   openManualAdd() {
+        // 🔥 L-7ARIS: Ila kan OFFLINE, ma-t7ellch l-modal w 3tih alert
+    if (this.currentStatus === 'OFFLINE') { 
+      alert("⚠️ Ma-tqderch t-zid klyan w nta OFFLINE! 7el l-7anout (OPEN) be3da.");
+      return; 
+    }
     this.manualAddOpen = true;
     this.searchQuery = '';
     this.searchResults = [];
@@ -662,11 +670,27 @@ export class BarberDashboard implements OnInit {
       manualName: this.manualName,
       serviceIds: this.selectedServiceIds
     };
-
-    this.appointmentService.createAppointment(dto).subscribe(() => {
-      this.manualAddOpen = false;
-      this.loadQueue();
-    });
+    this.appointmentService.createAppointment(dto).subscribe({
+      next: (res) => {
+        // ... koud dyal naja7 (close modal, reset, etc...)
+        this.manualAddOpen = false;
+        this.loadQueue(); 
+      },
+      error: (err) => {
+        console.log(err);
+        
+        // 🔥 L-FIX: Zidna `err.error === 'CLIENT_BUSY'` 7it l-backend siftha direct string
+        if (err.error === 'CLIENT_BUSY' || err.error?.message === 'CLIENT_BUSY' || err.message?.includes('CLIENT_BUSY')) {
+          
+          alert("❌ Ma-tqderch t-zid had l-klyan! Rah dejà chad n-nouba 3nd 7ellaq akhor.");
+          
+        }else if (err.error === 'BARBER_OFFLINE' || err.error?.message === 'BARBER_OFFLINE' || err.message?.includes('BARBER_OFFLINE')) {
+          alert("⚠️ L-Backend rfed t-talab: Nta OFFLINE! 7el l-7anout be3da.");
+        } else {     
+          alert("⚠️ Wqe3 chi mouchkil, 3awd jerreb.");
+                  }
+      }
+  });
   }
 
   // --- Services Management ---

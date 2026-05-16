@@ -87,11 +87,38 @@ public class AppointmentService {
 
         // --- Ta7did Roles ---
         if (isCoiffeur) { // Coiffeur Manual Add
-            coiffeur = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Coiffeur not found"));
+            coiffeur = userRepository.findById(currentUserId)
+            .orElseThrow(() -> new RuntimeException("Coiffeur not found"));
+            if (coiffeur.getCurrentStatus() != null) {
+            String status = coiffeur.getCurrentStatus().name(); // awla coiffeur.getCurrentStatus() ila kant String
+            if ("OFFLINE".equals(status)) {
+            throw new RuntimeException("BARBER_OFFLINE");
+                            }
+            }
             if (dto.getClientId() == null && (dto.getManualName() == null || dto.getManualName().trim().isEmpty())) {
                 throw new IllegalArgumentException("Ma ymkench t-zid rendez-vous bla klyan w bla smiyat Guest!");
             }
-            if (dto.getClientId() != null) {
+                        if (dto.getClientId() != null) {// 🔥 ZIDNA L-7ARIS HNA: N-checkiw wach had l-klyan li 3zel l-coiffeur dejà chad n-nouba!
+                        boolean isBusy = appointmentRepository.existsByClientIdAndStatusIn(
+                    dto.getClientId(), 
+                    List.of(AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
+                );
+                if (isBusy) {
+                    throw new RuntimeException("CLIENT_BUSY"); // Sift l-Error bach y-tchedd f l-front
+                }
+                // 2. 🔥 L-QALEB J-JDID: N-lghiw (Cancel) ga3 d-demandes PENDING li msifet l-klyan
+                List<AppointmentEntity> pendingRequests = appointmentRepository.findByClientIdAndStatus(
+                    dto.getClientId(), 
+                    AppointmentStatus.PENDING
+                );
+
+                for (AppointmentEntity pendingApp : pendingRequests) {
+                    pendingApp.setStatus(AppointmentStatus.CANCELLED); // Awla REJECTED 3la 7ssab chno msammiha
+                    appointmentRepository.save(pendingApp);
+                                        
+                    // N-siftou signal l-dok l-7ellaqa lokhrin bach t-t7iyed mn chacha dyalhom f l-blaça!
+                    messagingTemplate.convertAndSend("/topic/queue/" + pendingApp.getCoiffeur().getId(), "UPDATE_QUEUE");
+                }
                 client = userRepository.findById(dto.getClientId()).orElse(null);
             } else {
                 manualName = dto.getManualName();
@@ -121,7 +148,7 @@ public class AppointmentService {
 
             // 👇 L-QALEB J-JDID D-HISTORY 👇
             if (client != null) {
-// ✅ Daba ghadi y-nqqez ga3 dok li fihom null, u y-jib akher wa7ed m-sajjel fih l-weqt s-s7i7!
+                            // ✅ Daba ghadi y-nqqez ga3 dok li fihom null, u y-jib akher wa7ed m-sajjel fih l-weqt s-s7i7!
                 java.util.Optional<AppointmentItem> lastTime = appointmentItemRepository
                     .findFirstByAppointmentClientIdAndServiceIdAndStatusAndActualDurationIsNotNullOrderByEndTimeDesc(
                         client.getId(), 
