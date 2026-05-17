@@ -474,7 +474,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
   initUserWebSocket() {
     if (this.currentUser && this.currentUser.id) {
-      const sub = this.ws.subscribeToUser(this.currentUser.id).subscribe(msg => {
+      const sub = this.ws.subscribeToUser(this.currentUser.id).subscribe((msg: any) => {
         console.log("WebSocket Message received for User:", msg);
         
         if (msg === 'QUEUE_UPDATED') {

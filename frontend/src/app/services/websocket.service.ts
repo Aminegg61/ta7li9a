@@ -53,6 +53,7 @@ export class WebsocketService {
         this.stompClient.subscribe(`/topic/queue/${barberId}`, (message: any) => {
             queueSubject.next(JSON.parse(message.body));
         });
+
     } else {
         // Ila kan baqi ma t-connectach, n-tsennawh i-t-connecta w n-siftou
         setTimeout(() => {
@@ -64,6 +65,30 @@ export class WebsocketService {
         }, 1000);
     }
     return queueSubject.asObservable();
+  }
+
+  // 🔥 L-Fonction jdida li kiy-st3mlha l-ClientDashboard
+  subscribeToUser(userId: number) {
+    const userSubject = new Subject<any>();
+    
+    const trySubscribe = () => {
+      if (this.stompClient && this.stompClient.connected) {
+        // K-y-tsennet l-topic dyal l-Klyan
+        this.stompClient.subscribe(`/topic/user/${userId}`, (message: any) => {
+          try {
+            userSubject.next(JSON.parse(message.body));
+          } catch (e) {
+            userSubject.next(message.body);
+          }
+        });
+      } else {
+        // Ila baqi ma-t-connectach, kiy-tsenna taniya w y-3awd y-jerreb
+        setTimeout(trySubscribe, 1000);
+      }
+    };
+
+    trySubscribe();
+    return userSubject.asObservable();
   }
 
   disconnect() {
