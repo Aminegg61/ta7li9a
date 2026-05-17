@@ -1,14 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs'; // 🔥 Zidna Subscription hna
 import { BarberService } from '../../../services/barber.service';
 import { AppointmentService } from '../../../services/appointment.service';
 import { ServiceCatalogService } from '../../../services/service-catalog.service';
 import { AuthService } from '../../../services/auth';
 import { AppointmentResponseDTO, ServiceResponseDTO, User } from '../../../models/interfaces';
 import { WebsocketService } from '../../../services/websocket.service';
-import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-barber-dashboard',
@@ -16,7 +16,6 @@ import { ChangeDetectorRef } from '@angular/core';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-neutral-950 text-white font-sans">
-      <!-- HEADER -->
       <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <button (click)="drawerOpen = true" class="p-2 -ml-2 text-neutral-400 hover:text-white transition-colors">
@@ -39,7 +38,6 @@ import { ChangeDetectorRef } from '@angular/core';
         </div>
       </header>
 
-      <!-- DRAWER MODAL -->
       <div *ngIf="drawerOpen" class="fixed inset-0 z-50 flex">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="drawerOpen = false"></div>
         <div class="relative w-80 bg-neutral-900 h-full border-r border-neutral-800 shadow-2xl flex flex-col transform transition-transform">
@@ -60,7 +58,6 @@ import { ChangeDetectorRef } from '@angular/core';
 
       <main class="max-w-4xl mx-auto p-6 space-y-8">
         
-        <!-- STATUS SWITCHER -->
         <section class="bg-neutral-900 border border-neutral-800 rounded-[2rem] p-6 text-center relative overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
           <p class="text-[10px] tracking-widest uppercase font-black text-neutral-500 mb-4 inline-flex items-center gap-2">
@@ -68,7 +65,6 @@ import { ChangeDetectorRef } from '@angular/core';
             Current Status
           </p>
           
-          <!-- الميساج ديال الخطأ (Error Message) -->
           <div *ngIf="statusErrorMessage" class="bg-red-900/20 border border-red-500/50 text-red-500 text-xs font-bold p-2 mb-4 rounded-xl">
             {{ statusErrorMessage }}
           </div>
@@ -80,7 +76,6 @@ import { ChangeDetectorRef } from '@angular/core';
               ACTIVE
             </button>
             
-            <!-- زر FULL معدل -->
             <button (click)="setStatus('FULL')" 
               [disabled]="activeQueue.length === 0 && currentStatus !== 'FULL'"
               class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
@@ -99,26 +94,27 @@ import { ChangeDetectorRef } from '@angular/core';
             Broadcasting status to clients...
           </p>
         </section>
-        <section *ngIf="pendingRequests.length > 0" class="mb-8">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-2 h-2 bg-yellow-500 rounded-full animate-ping"></div>
-          <h2 class="text-sm text-yellow-500 font-black uppercase tracking-widest">New Demands ({{pendingRequests.length}})</h2>
-        </div>
 
-        <div class="space-y-3">
-          <div *ngFor="let req of pendingRequests" class="bg-neutral-900 border-2 border-yellow-500/20 rounded-[1.5rem] p-5 flex items-center justify-between">
-            <div>
-              <h3 class="font-black text-white uppercase">{{ req.clientName }}</h3>
-              <p class="text-[10px] font-bold text-neutral-500">{{ req.serviceNames.join(', ') }}</p>
-            </div>
-            <div class="flex gap-2">
-              <button (click)="rejectRequest(req.id)" class="p-3 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-900/40 transition-all">✕</button>
-              <button (click)="acceptRequest(req.id)" class="px-5 py-3 bg-yellow-500 text-black font-black text-[10px] rounded-xl hover:bg-yellow-400 uppercase tracking-widest">Accept</button>
+        <section *ngIf="pendingRequests.length > 0" class="mb-8">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-2 h-2 bg-yellow-500 rounded-full animate-ping"></div>
+            <h2 class="text-sm text-yellow-500 font-black uppercase tracking-widest">New Demands ({{pendingRequests.length}})</h2>
+          </div>
+
+          <div class="space-y-3">
+            <div *ngFor="let req of pendingRequests" class="bg-neutral-900 border-2 border-yellow-500/20 rounded-[1.5rem] p-5 flex items-center justify-between">
+              <div>
+                <h3 class="font-black text-white uppercase">{{ req.clientName }}</h3>
+                <p class="text-[10px] font-bold text-neutral-500">{{ req.serviceNames.join(', ') }}</p>
+              </div>
+              <div class="flex gap-2">
+                <button (click)="rejectRequest(req.id)" class="p-3 bg-red-900/20 text-red-500 rounded-xl hover:bg-red-900/40 transition-all">✕</button>
+                <button (click)="acceptRequest(req.id)" class="px-5 py-3 bg-yellow-500 text-black font-black text-[10px] rounded-xl hover:bg-yellow-400 uppercase tracking-widest">Accept</button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-        <!-- TODAY'S QUEUE -->
+        </section>
+
         <section>
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-2xl font-black italic uppercase tracking-tighter">Today's Queue</h2>
@@ -126,7 +122,8 @@ import { ChangeDetectorRef } from '@angular/core';
                 [disabled]="currentStatus === 'OFFLINE'"
                 class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-4 py-2 rounded-xl transition-all 
                        hover:bg-yellow-400 
-                       disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed disabled:hover:bg-yellow-500">              + Manual Add
+                       disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed disabled:hover:bg-yellow-500">
+              + Manual Add
             </button>
           </div>
 
@@ -135,15 +132,11 @@ import { ChangeDetectorRef } from '@angular/core';
               No appointments in the queue.
             </div>
 
-            <!-- L-KARTA DYAL N-NOUBA (SMART UX: 1 Service vs Multi Services) -->
             <div *ngFor="let apt of activeQueue; let i = index; trackBy: trackByAptId" 
                  class="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 transition-all flex flex-col"
                  [ngClass]="{'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.15)]': i === 0}">
               
-              <!-- 🔥 STER L-FOQANI: Smiya + Boutonat 🔥 -->
               <div class="flex items-center justify-between w-full">
-                
-                <!-- L-Ysser: Avatar + Smiya -->
                 <div class="flex items-center gap-3 overflow-hidden">
                   <div class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-black text-xs"
                        [ngClass]="i === 0 ? 'bg-yellow-500 text-black shadow-md shadow-yellow-500/20' : 'bg-neutral-950 text-neutral-500 border border-neutral-800'">
@@ -159,10 +152,7 @@ import { ChangeDetectorRef } from '@angular/core';
                   </div>
                 </div>
 
-                <!-- L-Ymen: Boutonat (START, DONE, CLEAR) -->
                 <div class="flex items-center gap-2 shrink-0 ml-2">
-                  
-                  <!-- 1. JALES (WAITING) -> Dima kiyban START w CANCEL l-foq -->
                   <ng-container *ngIf="i === 0 && apt.status === 'WAITING'">
                     <button (click)="startAppointment(apt.id)"
                       class="bg-green-500 text-black font-black uppercase tracking-widest text-[10px] px-8 py-2.5 rounded-xl hover:bg-green-400 transition-all shadow-[0_0_10px_rgba(34,197,94,0.3)]">
@@ -174,44 +164,31 @@ import { ChangeDetectorRef } from '@angular/core';
                     </button>
                   </ng-container>
 
-                  <!-- 2. SCÉNARIO 1 SERVICE (IN_PROGRESS) -> Kiyban DONE, PAUSE w RESUME -->
                   <ng-container *ngIf="i === 0 && apt.status === 'IN_PROGRESS' && apt.items.length === 1">
-                    
-                    <!-- ⏸️ PAUSE -->
                     <button *ngIf="!isPaused" (click)="pause()" title="Pause Haircut"
                       class="bg-orange-500/20 text-orange-500 font-black uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl hover:bg-orange-500 hover:text-black transition-all shadow-[0_0_10px_rgba(249,115,22,0.3)]">
                       ⏸️ PAUSE
                     </button>
-
-                    <!-- ▶️ RESUME -->
                     <button *ngIf="isPaused" (click)="resume()" title="Resume Haircut"
                       class="bg-blue-500/20 text-blue-500 font-black uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse">
                       ▶️ RESUME
                     </button>
-
-                    <!-- ✔ DONE -->
                     <button (click)="completeItem(apt.items[0].id)"
                       class="bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-8 py-2.5 rounded-xl hover:bg-yellow-400 transition-all shadow-[0_0_10px_rgba(234,179,8,0.3)]">
                       ✔ DONE
                     </button>
                   </ng-container>
 
-                  <!-- Bouton Cancel l n-nas lokhrin f n-nouba -->
                   <button *ngIf="apt.status === 'WAITING' && i !== 0" (click)="clearAppointment(apt.id)" title="Remove"
                     class="w-8 h-8 flex items-center justify-center bg-red-900/20 text-red-500 rounded-lg hover:bg-red-900/40 transition-all">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
-
                 </div>
               </div>
 
-              <!-- 🔥 3. SCÉNARIO MULTI-SERVICES (IN_PROGRESS w 3ndou 2+ Services) -->
               <div *ngIf="i === 0 && apt.status === 'IN_PROGRESS' && apt.items.length > 1" class="mt-3 space-y-2 border-t border-neutral-800/50 pt-3">
-                
                 <div class="flex justify-between items-center mb-1.5">
                   <p class="text-[9px] text-yellow-500 font-black uppercase tracking-widest animate-pulse">Running Services:</p>
-                  
-                  <!-- ⏸️ PAUSE / ▶️ RESUME L-HAD L-KLYAN -->
                   <div class="flex gap-2">
                     <button *ngIf="!isPaused" (click)="pause()" class="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-500/10 px-2 py-1 rounded">⏸️ Pause</button>
                     <button *ngIf="isPaused" (click)="resume()" class="text-[9px] font-black uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2 py-1 rounded animate-pulse">▶️ Resume</button>
@@ -220,20 +197,16 @@ import { ChangeDetectorRef } from '@angular/core';
                 
                 <div *ngFor="let item of apt.items" class="flex items-center justify-between bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl">
                   <span class="text-xs font-bold text-white uppercase">{{ item.serviceName }}</span>
-                  
-                  <!-- Bouton DONE l-kola service -->
                   <button *ngIf="item.status === 'IN_PROGRESS'" (click)="completeItem(item.id)"
                     class="bg-yellow-500/20 border border-yellow-500/30 text-yellow-500 font-black uppercase tracking-widest text-[9px] px-4 py-1.5 rounded-lg hover:bg-yellow-500 hover:text-black transition-all">
                     DONE
                   </button>
-
                   <span *ngIf="item.status === 'COMPLETED'" class="text-[9px] text-neutral-600 font-black uppercase tracking-widest flex items-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     Finished
                   </span>
                 </div>
 
-                <!-- Bouton FINISH ALL l-Rendez-vous Kaml -->
                 <button (click)="completeAppointment(apt.id)"
                   class="w-full mt-3 bg-yellow-500 text-black font-black uppercase tracking-widest text-[10px] px-4 py-3 rounded-xl hover:bg-yellow-400 transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)]">
                   ✔ FINISH ALL SERVICES
@@ -244,21 +217,16 @@ import { ChangeDetectorRef } from '@angular/core';
           </div>
         </section>
 
-
       </main>
 
-      <!-- MANUAL ADD MODAL -->
       <div *ngIf="manualAddOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="manualAddOpen = false"></div>
         <div class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-[2rem] p-8 shadow-2xl flex flex-col max-h-[90vh]">
           <h2 class="text-2xl font-black italic uppercase tracking-tighter mb-6">Add Appointment</h2>
           
           <div class="overflow-y-auto flex-1 pr-2 -mr-2 space-y-6">
-            <!-- Client Search -->
             <div class="space-y-2">
               <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Search Client / Phone</label>
-              
-              <!-- زدنـا [disabled] باش تـطفى إلى كان Guest مكتوب -->
               <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchClients($event)" 
                 [disabled]="manualName.trim().length > 0"
                 class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed" 
@@ -270,18 +238,14 @@ import { ChangeDetectorRef } from '@angular/core';
                         [disabled]="isUserInQueue(user.id)"
                         class="w-full text-left px-3 py-2 rounded-lg transition-colors flex justify-between items-center"
                         [ngClass]="{'opacity-50 grayscale cursor-not-allowed bg-red-900/10': isUserInQueue(user.id), 'hover:bg-neutral-800': !isUserInQueue(user.id)}">
-                  
                   <span class="font-bold text-sm">{{ user.firstName }} {{ user.lastName }}</span>
                   <span *ngIf="isUserInQueue(user.id)" class="text-[8px] font-black bg-red-500 text-white px-2 py-1 rounded italic uppercase">Already in Queue</span>
                   <span *ngIf="!isUserInQueue(user.id)" class="text-xs text-neutral-500">{{ user.phoneNumber }}</span>
                 </button>
               </div>
 
-<!-- Guest entry -->
               <div class="mt-4 pt-4 border-t border-neutral-800 space-y-2">
                 <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Or enter guest name</label>
-                
-                <!-- 🔥 L-FIX: Zidna (input)="onGuestInput()" hna -->
                 <input type="text" [(ngModel)]="manualName" (input)="onGuestInput()"
                   [disabled]="manualClientId !== null"
                   class="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-yellow-500 disabled:opacity-30 disabled:cursor-not-allowed" 
@@ -289,33 +253,25 @@ import { ChangeDetectorRef } from '@angular/core';
               </div>
             </div>
 
-<!-- Service Selection -->
             <div class="space-y-2">
               <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Select Services</label>
               <div class="space-y-2">
-                
-                <!-- 🔥 L-FIX 1: Bdelna myServices b displayServices -->
                 <label *ngFor="let srv of displayServices" 
                        class="flex items-center gap-3 bg-neutral-950 border border-neutral-800 p-3 rounded-xl cursor-pointer hover:border-neutral-600 transition-all"
                        [ngClass]="{'border-yellow-500 bg-yellow-500/5': selectedServiceIds.includes(srv.id)}">
                   <input type="checkbox" [value]="srv.id" (change)="toggleService(srv.id)" class="accent-yellow-500 w-4 h-4">
                   <div class="flex-1">
                     <p class="font-bold text-sm">{{ srv.name }}</p>
-                    
-                    <!-- 🔥 L-FIX 2: Zidna zwa9a dyal CUSTOM ila kan l-waqt m-beddel -->
                     <p class="text-xs text-neutral-500 flex items-center gap-2">
                       {{ srv.duration }} 
                       <span *ngIf="srv.isCustom" class="text-[8px] font-black uppercase bg-green-500/20 text-green-500 px-1 py-0.5 rounded">Custom</span>
                     </p>
-                    
                   </div>
                 </label>
-                
               </div>
             </div>
           </div>
 
-          <!-- Buttons -->
           <div class="mt-8 flex gap-3 pt-4 border-t border-neutral-800">
             <button (click)="manualAddOpen = false" class="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-400 font-black uppercase tracking-widest py-3 rounded-xl hover:text-white">Cancel</button>
             <button (click)="submitManualAdd()" 
@@ -327,7 +283,6 @@ import { ChangeDetectorRef } from '@angular/core';
         </div>
       </div>
 
-      <!-- SERVICES MANAGER MODAL -->
       <div *ngIf="servicesModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="servicesModalOpen = false"></div>
         <div class="relative w-full max-w-lg bg-neutral-900 border border-neutral-800 rounded-[2rem] p-8 shadow-2xl flex flex-col max-h-[90vh]">
@@ -349,7 +304,6 @@ import { ChangeDetectorRef } from '@angular/core';
             </div>
           </div>
 
-          <!-- Add New Service -->
           <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800">
             <h3 class="text-xs font-black uppercase tracking-widest text-neutral-500 mb-4">Add New Service</h3>
             <div class="space-y-3">
@@ -362,14 +316,13 @@ import { ChangeDetectorRef } from '@angular/core';
               </button>
             </div>
           </div>
-
         </div>
       </div>
 
     </div>
   `
 })
-export class BarberDashboard implements OnInit {
+export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDestroy hna
   currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE'  = 'OFFLINE';
   isPaused: boolean = false;
   statusErrorMessage: string = '';
@@ -396,6 +349,9 @@ export class BarberDashboard implements OnInit {
   newServiceDuration: number | null = null;
   pendingRequests: AppointmentResponseDTO[] = [];
 
+  // 🔥 L-Qaleb dyal l-Khit (Memory Leak Fix)
+  private wsSubscription: Subscription | null = null;
+
   constructor(
     private router: Router,
     private auth: AuthService,
@@ -414,31 +370,36 @@ export class BarberDashboard implements OnInit {
     this.loadCurrentStatus();
     this.initWebSocketListener();
   }
+
   initWebSocketListener() {
     if (this.currentUser && this.currentUser.id) {
-      this.ws.subscribeToQueue(this.currentUser.id).subscribe(message => {
+      // 🔥 K-n-cheddou l-khit f wa7ed l-variable
+      this.wsSubscription = this.ws.subscribeToQueue(this.currentUser.id).subscribe(message => {
         console.log("Signal Received:", message);
-        
-        // 🔥 Zid had l-Timeout sghir hna
         setTimeout(() => {
           console.log("Refreshing queue now...");
-          this.loadQueue(); // Daba l-DB ghadi t-koun dejà updated
-        }, 500); // 0.5 saniya kafiwa bach l-backend y-commit-i l-data
+          this.loadQueue(); 
+        }, 500); 
       });
     }
   }
+
   ngOnDestroy() {
+    // 🔥 Mli kiy-tsedd l-Dashboard, k-n-qet3ou l-khit awwlan
+    if (this.wsSubscription) {
+      this.wsSubscription.unsubscribe();
+      console.log('🧹 Khit d-WebSocket t-qte3 (No Memory Leak)');
+    }
     this.ws.disconnect();
   }
 
   loadCurrentStatus() {
     this.barberService.getCurrentStatus().subscribe({
       next: (res: any) => {
-        // Takked beli status katchbah l 'ACTIVE', 'FULL' walla 'OFFLINE'
-        
         this.currentStatus = res.status;
         this.isPaused = res.isPaused; 
-         console.log("Status:", this.currentStatus, "| Paused:", this.isPaused);      },
+        console.log("Status:", this.currentStatus, "| Paused:", this.isPaused);
+      },
       error: (err) => {
         console.error("Ma-qdrnach njibo l-status", err);
       }
@@ -451,33 +412,29 @@ export class BarberDashboard implements OnInit {
   }
 
   setStatus(st: 'ACTIVE' | 'FULL' | 'OFFLINE') {
-    this.statusErrorMessage = ''; // مسح الأخطاء القديمة
+    this.statusErrorMessage = ''; 
 
-    // --- الشرط الأول: مايمكنش دير FULL والصف خاوي ---
     if (st === 'FULL' && this.activeQueue.length === 0) {
       this.statusErrorMessage = "Ma tqderch tdir FULL w n-nouba khawya!";
       console.log(this.statusErrorMessage);
       
-      setTimeout(() => this.statusErrorMessage = '', 3000); // حيد الميساج من بعد 3 ثواني
+      setTimeout(() => this.statusErrorMessage = '', 3000); 
       return;
     }
 
-    // --- الشرط الثاني: تحذير قبل الـ OFFLINE إلى كان الصف عامر ---
     if (st === 'OFFLINE' && this.activeQueue.length > 0) {
       const confirmCancel = confirm(
         `Wdya! 3ndek ${this.activeQueue.length} l-klyan kyt-snaw. Ila derti OFFLINE ghadi y-t'annulaw l-mawa3id dylhom kamlin. Wach mt2ked bghiti t-sed?`
       );
       
       if (!confirmCancel) {
-        return; // إلى برك على "Annuler"، حبس العملية
+        return; 
       }
     }
 
-    // إلى داز من الشروط، صيفط للسيرفر
     this.barberService.updateStatus(st).subscribe({
       next: () => {
         this.currentStatus = st;
-        // إلى دار OFFLINE ومسحنا الكليان، خصنا نـريفرشيو الـ Queue باش تخوى حتى فـ الشاشة
         if (st === 'OFFLINE') {
            this.loadQueue(); 
         }
@@ -492,29 +449,26 @@ export class BarberDashboard implements OnInit {
   loadQueue() {
     this.appointmentService.getTodayQueue().subscribe({
       next: (res) => {
-        // 1. Demandes li baqi ma-t-acceptawch
         console.log("Data men l-Backend:", res);
         
         this.pendingRequests = res.filter(a => a.status === 'PENDING');
-        // Filter l-appointments b7al dima
         this.activeQueue = res.filter(a => a.status === 'WAITING' || a.status === 'IN_PROGRESS');
         console.log("Active Queue Filtered:", this.activeQueue);
-        // 🔥 Zid hadi hna darouri bach t-t-refresh l-UI
         this.cdr.detectChanges();
       },
       error: (err) => console.error("Erreur f loadQueue", err)
     });
   }
-  // Zid had l-functions jdad:
+
   acceptRequest(id: number) {
     this.appointmentService.acceptAppointment(id).subscribe(() => {
-      this.loadQueue(); // Refresh kolchi
+      this.loadQueue(); 
     });
   }
 
   rejectRequest(id: number) {
     this.appointmentService.rejectAppointment(id).subscribe(() => {
-      this.loadQueue(); // Refresh kolchi
+      this.loadQueue(); 
     });
   }
 
@@ -525,15 +479,14 @@ export class BarberDashboard implements OnInit {
   loadServices() {
     this.catalogService.getMyServices().subscribe(res => {
       this.myServices = res;
-      // 🔥 زدنا هاد السطر باش نعمروا displayServices فاش كيتشارجا الداشبورد
       this.resetServiceDurations(); 
     });
   }
-  // 🔥 هاد الميثود كترجع الخدمات للوقت الأصلي ديالهم (Default)
+
   resetServiceDurations() {
     this.displayServices = this.myServices.map(s => ({
       ...s,
-      isCustom: false // هادي زدناها باش من بعد نقدرو نأفيشيو كلمة "Custom" فـ الشاشة
+      isCustom: false 
     }));
   }
 
@@ -549,12 +502,11 @@ export class BarberDashboard implements OnInit {
     });
   }
 
-  // 🔥 Zid had l-methode hna
   clearAppointment(id: number) {
     if (confirm('Wach m-atked bghiti t-mssa7 had l-klyan mn n-nouba?')) {
       this.appointmentService.clearAppointment(id).subscribe({
         next: () => {
-          this.loadQueue(); // Refresh n-nouba
+          this.loadQueue(); 
         },
         error: (err) => {
           console.error("Erreur f clear", err);
@@ -564,45 +516,37 @@ export class BarberDashboard implements OnInit {
     }
   }
 
-  // --- Manual Add Logic ---
   openManualAdd() {
-        // 🔥 L-7ARIS: Ila kan OFFLINE, ma-t7ellch l-modal w 3tih alert
-    if (this.currentStatus === 'OFFLINE') { 
-      alert("⚠️ Ma-tqderch t-zid klyan w nta OFFLINE! 7el l-7anout (OPEN) be3da.");
-      return; 
-    }
     this.manualAddOpen = true;
     this.searchQuery = '';
     this.searchResults = [];
     this.manualClientId = null;
     this.manualName = '';
     this.selectedServiceIds = [];
-    // 🔥 Zid hadi bach dima l-modal yt7el b l-waqt l-3adi
     this.resetServiceDurations();
   }
 
   onSearchClients(val: string) {
     if (this.manualClientId) {
       this.manualClientId = null; 
-      // 🔥 Zid hadi: Ila msa7 l-klyan, rje3 l-waqt default
       this.resetServiceDurations();
     }
     if (val.length > 2) {
       this.appointmentService.searchClients(val).subscribe(res => {
-        this.searchResults = Array.isArray(res) ? res : [res]; // Wrap if it returns 1 user
+        this.searchResults = Array.isArray(res) ? res : [res]; 
       });
     } else {
       this.searchResults = [];
     }
   }
-  // 🔥 hadi ghadi t-khdem melli y-kteb Guest b yeddou
+
   onGuestInput() {
     this.manualClientId = null;
     this.searchResults = [];
-    this.resetServiceDurations(); // rje3 l-waqt default
+    this.resetServiceDurations(); 
   }
+
   selectUser(user: User) {
-    // 1. Qelleb wach l-ID dyal had l-user dejà kayn f n-nouba
     const isAlreadyInQueue = 
       this.activeQueue.some(apt => apt.clientId === user.id) || 
       this.pendingRequests.some(apt => apt.clientId === user.id);
@@ -611,35 +555,29 @@ export class BarberDashboard implements OnInit {
       alert("Had l-klyan dejà rah f n-nouba! Ma-tqderch t-zidou marra khor.");
       this.searchQuery = '';
       this.searchResults = [];
-      return; // 7bess hna
+      return; 
     }
 
-    // 2. 3zelna l-klyan w ms7na l-ba7t
     this.manualClientId = user.id;
     this.manualName = '';
     this.searchQuery = user.firstName + ' ' + user.lastName;
     this.searchResults = [];
 
-    // 🔥 3. L-QALEB HNA: Njibou l-waqt l-mkhasses dyal had l-klyan
     this.catalogService.getClientCustomServices(user.id).subscribe({
       next: (customData: any[]) => {
-        // N-bdelou l-waqt f displayServices
         this.displayServices = this.myServices.map(defaultSrv => {
-          // n-qellbou wach had l-klyan 3ndou waqt jdid f had service
           const custom = customData.find(c => c.serviceId === defaultSrv.id); 
           
           if (custom && custom.customDuration) {
-            // Ila lqah, bdel l-waqt w che3el 'isCustom'
             return { ...defaultSrv, duration: custom.customDuration + ' min', isCustom: true };
           }
           
-          // Ila malqach waqt mkhasses l-had service, khellih Default
           return { ...defaultSrv, isCustom: false };
         });
       },
       error: (err) => {
         console.error("Maqdernach njibou l-waqt l-mkhasses", err);
-        this.resetServiceDurations(); // Ila wqe3 mouchkil, rje3 l default
+        this.resetServiceDurations(); 
       }
     });
   }
@@ -660,7 +598,6 @@ export class BarberDashboard implements OnInit {
 
   submitManualAdd() {
     if (this.selectedServiceIds.length === 0) return;
-    // 2. Khass y-koun ya imma Client sélectionné YA IMMA Guest Name m-ktoub
     if (!this.manualClientId && this.manualName.trim().length === 0) {
       alert("Khassk t-3zel klyan mn l-la2i7a awla t-kteb smiya d-Guest!");
       return;
@@ -670,30 +607,13 @@ export class BarberDashboard implements OnInit {
       manualName: this.manualName,
       serviceIds: this.selectedServiceIds
     };
-    this.appointmentService.createAppointment(dto).subscribe({
-      next: (res) => {
-        // ... koud dyal naja7 (close modal, reset, etc...)
-        this.manualAddOpen = false;
-        this.loadQueue(); 
-      },
-      error: (err) => {
-        console.log(err);
-        
-        // 🔥 L-FIX: Zidna `err.error === 'CLIENT_BUSY'` 7it l-backend siftha direct string
-        if (err.error === 'CLIENT_BUSY' || err.error?.message === 'CLIENT_BUSY' || err.message?.includes('CLIENT_BUSY')) {
-          
-          alert("❌ Ma-tqderch t-zid had l-klyan! Rah dejà chad n-nouba 3nd 7ellaq akhor.");
-          
-        }else if (err.error === 'BARBER_OFFLINE' || err.error?.message === 'BARBER_OFFLINE' || err.message?.includes('BARBER_OFFLINE')) {
-          alert("⚠️ L-Backend rfed t-talab: Nta OFFLINE! 7el l-7anout be3da.");
-        } else {     
-          alert("⚠️ Wqe3 chi mouchkil, 3awd jerreb.");
-                  }
-      }
-  });
+
+    this.appointmentService.createAppointment(dto).subscribe(() => {
+      this.manualAddOpen = false;
+      this.loadQueue();
+    });
   }
 
-  // --- Services Management ---
   openServicesModal() {
     this.servicesModalOpen = true;
     this.drawerOpen = false;
@@ -704,7 +624,6 @@ export class BarberDashboard implements OnInit {
     
     this.catalogService.addService({
       name: this.newServiceName,
-      // price:0,
       duration: this.newServiceDuration
     }).subscribe(() => {
       this.newServiceName = '';
@@ -718,7 +637,7 @@ export class BarberDashboard implements OnInit {
       this.loadServices();
     });
   }
-  // 🔥 Zid had 2 méthodes l-jdad:
+
   startItem(itemId: number) {
     this.appointmentService.startItem(itemId).subscribe(() => {
       this.loadQueue();
@@ -730,7 +649,6 @@ export class BarberDashboard implements OnInit {
       this.loadQueue();
     });
   }
-  // 🔥 ZID HADO L-TA7T 🔥
 
   pause() {
     this.barberService.pauseWork().subscribe({
@@ -751,5 +669,4 @@ export class BarberDashboard implements OnInit {
       error: (err) => console.error("Error resuming:", err)
     });
   }
-  
 }

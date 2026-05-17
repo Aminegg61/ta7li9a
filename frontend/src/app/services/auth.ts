@@ -7,6 +7,9 @@ import { jwtDecode } from 'jwt-decode';
   providedIn: 'root',
 })
 export class AuthService {
+  logout() {
+    throw new Error('Method not implemented.');
+  }
 
   private baseUrl = 'https://ta7li9a-backend.onrender.com'; // backend URL
 
