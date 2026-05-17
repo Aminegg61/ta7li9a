@@ -4,10 +4,13 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.ajemi.barber.Ta7li9_app.entity.User;
+
+import jakarta.persistence.LockModeType;
 
 public interface UserRepository extends JpaRepository<User, Long>{
 
@@ -33,5 +36,8 @@ public interface UserRepository extends JpaRepository<User, Long>{
        "))" +
        ")")
         List<User> searchBarbersHybrid(@Param("query") String query, @Param("followedIds") List<Long> followedIds);
+                @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT u FROM User u WHERE u.id = :id")
+        java.util.Optional<User> findByIdWithLock(@Param("id") Long id);
     
 }

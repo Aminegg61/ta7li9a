@@ -296,7 +296,12 @@ import { AuthService } from '../../../services/auth';
 
           <div class="mt-8 flex gap-3 pt-4 border-t border-neutral-800">
             <button (click)="closeModal()" class="flex-1 bg-neutral-950 border border-neutral-800 text-neutral-400 font-black uppercase tracking-widest py-3 rounded-xl hover:text-white">Cancel</button>
-            <button (click)="submitRequest()" class="flex-1 bg-yellow-500 text-black font-black uppercase tracking-widest py-3 rounded-xl hover:bg-yellow-400 disabled:opacity-50">Confirm</button>
+            <button (click)="submitRequest()" 
+                    [disabled]="selectedServices.length === 0 || isSubmitting"
+                    class="flex-1 bg-yellow-500 text-black font-black uppercase tracking-widest py-3 rounded-xl transition-all
+                           hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ isSubmitting ? 'SENDING...' : 'CONFIRM' }}
+            </button>
           </div>
         </div>
       </div>
@@ -386,6 +391,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
   displayServices: any[] = [];
   selectedServices: number[] = [];
   userAppointments: AppointmentResponseDTO[] = [];
+  isSubmitting = false;
   // private subscriptions: Subscription[] = [];
   private barberSubs: Subscription[] = [];
   private userSubs: Subscription[] = [];
@@ -765,13 +771,11 @@ openServiceSelection(barberId: number) {
   }
 
   submitRequest() {
-    if (this.selectedServices.length === 0 || !this.targetBarberId) return;
-    
+    if (this.selectedServices.length === 0 || !this.targetBarberId || this.isSubmitting) return;
+    this.isSubmitting = true;
     const payload: AppointmentRequestDTO = {
       barberId: this.targetBarberId,
       serviceIds: this.selectedServices,
-      //manualName: '',   // Beddel null b string khawi
-      //clientId: undefined // Blast null, ista3mel undefined ila kan optional
     };
 
     this.appointmentService.createAppointment(payload).subscribe({
@@ -786,8 +790,20 @@ openServiceSelection(barberId: number) {
         console.log(payload);
         
         this.serviceSelectOpen = false;
+          this.isSubmitting = false;
          this.cdr.detectChanges();
         //this.loadLists();
+      },
+      error: (err) => {
+        this.isSubmitting = false; // 🔥 Rje3ha false 7ta ila wqe3 mouchkil
+
+        // N-chedou l-Error mn l-Backend
+        if (err.error === 'ALREADY_PENDING' || err.error?.message === 'ALREADY_PENDING' || err.message?.includes('ALREADY_PENDING')) {
+           alert("⚠️ Dejà msifet demande l had l-coiffeur!");
+           this.serviceSelectOpen = false;
+        } else {
+           alert("⚠️ Wqe3 mochkil, 3awd jerreb.");
+        }
       }
     });
   }

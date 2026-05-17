@@ -69,7 +69,9 @@ public class AppointmentService {
         Long currentUserId = currentUser.getId();
         boolean isCoiffeur = currentUser.isCoiffeur();
         
-        // 1. Check Duplicate l l-Client (Zid PENDING l l-lista dyal l-verif)
+        // 1. 🔥 N-Qeflou 3la l-klyan bach may-sifetch 2 demandes f nefs l-millisecond!
+        User lockedUser = userRepository.findByIdWithLock(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
         if (!isCoiffeur) {
             boolean alreadyInQueue = appointmentRepository.existsByClientIdAndStatusIn(
                 currentUserId, 
@@ -79,6 +81,15 @@ public class AppointmentService {
                 throw new RuntimeException("Rak dejà f n-nouba walla katti-tsenna acceptation!");
             }
         }
+                    // 🔥 ZID HADI: N-checkiw wach dejà msifet demande w baqaa PENDING
+            boolean alreadyPending = appointmentRepository.existsByClientIdAndCoiffeurIdAndStatus(
+                currentUserId,
+                dto.getBarberId(),
+                AppointmentStatus.PENDING
+            );
+            if (alreadyPending) {
+                throw new RuntimeException("ALREADY_PENDING"); // Sift error bach l-front y-fhem
+            }
 
         AppointmentEntity appointment = new AppointmentEntity();
         User coiffeur;
@@ -87,8 +98,10 @@ public class AppointmentService {
 
         // --- Ta7did Roles ---
         if (isCoiffeur) { // Coiffeur Manual Add
-            coiffeur = userRepository.findById(currentUserId)
-            .orElseThrow(() -> new RuntimeException("Coiffeur not found"));
+            
+            // 1. 🔥 Hna sta3melnah: L-7ellaq hwa nfso lockedUser li dakhil daba
+            coiffeur = lockedUser; 
+            
             if (coiffeur.getCurrentStatus() != null) {
             String status = coiffeur.getCurrentStatus().name(); // awla coiffeur.getCurrentStatus() ila kant String
             if ("OFFLINE".equals(status)) {
@@ -98,7 +111,8 @@ public class AppointmentService {
             if (dto.getClientId() == null && (dto.getManualName() == null || dto.getManualName().trim().isEmpty())) {
                 throw new IllegalArgumentException("Ma ymkench t-zid rendez-vous bla klyan w bla smiyat Guest!");
             }
-                        if (dto.getClientId() != null) {// 🔥 ZIDNA L-7ARIS HNA: N-checkiw wach had l-klyan li 3zel l-coiffeur dejà chad n-nouba!
+            if (dto.getClientId() != null) {
+                // 🔥 ZIDNA L-7ARIS HNA: N-checkiw wach had l-klyan li 3zel l-coiffeur dejà chad n-nouba!
                         boolean isBusy = appointmentRepository.existsByClientIdAndStatusIn(
                     dto.getClientId(), 
                     List.of(AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
@@ -106,6 +120,7 @@ public class AppointmentService {
                 if (isBusy) {
                     throw new RuntimeException("CLIENT_BUSY"); // Sift l-Error bach y-tchedd f l-front
                 }
+                                
                 // 2. 🔥 L-QALEB J-JDID: N-lghiw (Cancel) ga3 d-demandes PENDING li msifet l-klyan
                 List<AppointmentEntity> pendingRequests = appointmentRepository.findByClientIdAndStatus(
                     dto.getClientId(), 
@@ -113,13 +128,14 @@ public class AppointmentService {
                 );
 
                 for (AppointmentEntity pendingApp : pendingRequests) {
-                    pendingApp.setStatus(AppointmentStatus.CANCELLED); // Awla REJECTED 3la 7ssab chno msammiha
+                    pendingApp.setStatus(AppointmentStatus.CANCELLED); 
                     appointmentRepository.save(pendingApp);
-                                        
-                    // N-siftou signal l-dok l-7ellaqa lokhrin bach t-t7iyed mn chacha dyalhom f l-blaça!
                     messagingTemplate.convertAndSend("/topic/queue/" + pendingApp.getCoiffeur().getId(), "UPDATE_QUEUE");
                 }
-                client = userRepository.findById(dto.getClientId()).orElse(null);
+                
+                // Hada kiy-bqa hka 7it l-7ellaq kiy-jbed klyan akhor (ma-m-connectich)
+                client = userRepository.findById(dto.getClientId()).orElse(null); 
+                
             } else {
                 manualName = dto.getManualName();
             }
@@ -128,7 +144,9 @@ public class AppointmentService {
         } 
         else { // Client Send Demand
             coiffeur = userRepository.findById(dto.getBarberId()).orElseThrow(() -> new RuntimeException("Coiffeur not found"));
-            client = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Client context not found"));
+            
+            // 2. 🔥 W Hna sta3melnah 7ta hwa: L-klyan hwa nfso lockedUser li dakhil daba
+            client = lockedUser; 
             
             // Demand kiy-koun PENDING u weqt khawi
             appointment.setStatus(AppointmentStatus.PENDING);
@@ -233,7 +251,7 @@ public class AppointmentService {
         app.setEndTime(startTime.plusMinutes(totalDuration)); // ✅ Hna targetTime ghadi y-koun m-gadd!
     }
 
-@Transactional
+    @Transactional
     public AppointmentResponseDTO acceptAppointment(Long appointmentId) {
         AppointmentEntity app = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Demand ma-lqinahch"));

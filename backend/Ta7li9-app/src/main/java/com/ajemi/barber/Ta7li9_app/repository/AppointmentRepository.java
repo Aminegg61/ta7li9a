@@ -75,6 +75,8 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
     List<AppointmentEntity> findByClientIdOrderByIdDesc(Long clientId);
     // 🔥 L-JDID: Jib l-Requests d-klyan li t-creyaw MN BE3D (After) wa7ed s-sa3a
     List<AppointmentEntity> findByClientIdAndCreatedAtAfterOrderByIdDesc(Long clientId, LocalDateTime timeLimit);
+        // N-checkiw wach l-klyan dejà msifet demande l had l-7ellaq w baqa PENDING
+    boolean existsByClientIdAndCoiffeurIdAndStatus(Long clientId, Long coiffeurId, AppointmentStatus status);
     // List<AppointmentEntity> findByCoiffeurIdAndStatusInAndCreatedAtBeforeOrderByCreatedAtAsc(
     //     Long barberId, 
     //     List<AppointmentStatus> statuses, 
