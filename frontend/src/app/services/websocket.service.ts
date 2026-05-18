@@ -46,24 +46,26 @@ export class WebsocketService {
     });
   }
 
-  // Zidna hadi l-Queue (nfs l-qaleb)
+  // 🔥 L-FIX HNA: Qaddina l-Queue bach t-qra "UPDATE_QUEUE" bla ma t-planta (Try/Catch)
   subscribeToQueue(barberId: number) {
     const queueSubject = new Subject<any>();
-    if (this.stompClient && this.stompClient.connected) {
+    
+    const trySubscribe = () => {
+      if (this.stompClient && this.stompClient.connected) {
         this.stompClient.subscribe(`/topic/queue/${barberId}`, (message: any) => {
+          try {
             queueSubject.next(JSON.parse(message.body));
+          } catch (e) {
+            queueSubject.next(message.body); // Ila kant String 3adiya ("UPDATE_QUEUE") ghadi t-douz
+          }
         });
-
-    } else {
+      } else {
         // Ila kan baqi ma t-connectach, n-tsennawh i-t-connecta w n-siftou
-        setTimeout(() => {
-            if (this.stompClient && this.stompClient.connected) {
-                this.stompClient.subscribe(`/topic/queue/${barberId}`, (message: any) => {
-                    queueSubject.next(JSON.parse(message.body));
-                });
-            }
-        }, 1000);
-    }
+        setTimeout(trySubscribe, 1000);
+      }
+    };
+
+    trySubscribe();
     return queueSubject.asObservable();
   }
 
