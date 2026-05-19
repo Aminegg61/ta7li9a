@@ -267,9 +267,7 @@ import { AuthService } from '../../../services/auth';
                 <p class="font-bold text-sm">{{ srv.name }}</p>
                 <div class="flex items-center gap-2 mt-1">
                   <span class="text-[10px] font-black uppercase text-neutral-500">{{ srv.duration }}</span>
-                  
                   <span *ngIf="srv.isCustom" class="text-[8px] font-black uppercase bg-green-500/20 text-green-500 px-1.5 py-0.5 rounded">CUSTOM</span>
-                  
                 </div>
               </div>
             </label>
@@ -286,6 +284,7 @@ import { AuthService } from '../../../services/auth';
           </div>
         </div>
       </div>
+
     <div *ngIf="isRequestsModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="closeRequestsModal()"></div>
         <div class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]">
@@ -297,17 +296,22 @@ import { AuthService } from '../../../services/auth';
 
           <div class="flex bg-neutral-950 p-1 rounded-xl mb-4 border border-neutral-800 relative">
             <button (click)="setActiveRequestsTab('ACCEPTED')" 
-                    class="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
+                    class="flex-1 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
                     [ngClass]="activeRequestsTab === 'ACCEPTED' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-400'">
               Accepted
             </button>
             <button (click)="setActiveRequestsTab('PENDING')" 
-                    class="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
+                    class="flex-1 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
                     [ngClass]="activeRequestsTab === 'PENDING' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-400'">
               Pending
             </button>
+            <button (click)="setActiveRequestsTab('CANCELLED')" 
+                    class="flex-1 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
+                    [ngClass]="activeRequestsTab === 'CANCELLED' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-400'">
+              Cancelled
+            </button>
             <button (click)="setActiveRequestsTab('REJECTED')" 
-                    class="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
+                    class="flex-1 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
                     [ngClass]="activeRequestsTab === 'REJECTED' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-400'">
               Rejected
             </button>
@@ -333,9 +337,10 @@ import { AuthService } from '../../../services/auth';
                     [ngClass]="{
                       'bg-green-500/10 text-green-500 border border-green-500/20': activeRequestsTab === 'ACCEPTED',
                       'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20': activeRequestsTab === 'PENDING',
+                      'bg-orange-500/10 text-orange-500 border border-orange-500/20': activeRequestsTab === 'CANCELLED',
                       'bg-red-500/10 text-red-500 border border-red-500/20': activeRequestsTab === 'REJECTED'
                     }">
-                {{ getBadgeText(req.status) }}
+                {{ getBadgeText(req) }}
               </span>
             </div>
           </div>
@@ -357,7 +362,10 @@ export class ClientDashboard implements OnInit, OnDestroy {
   searchModalOpen = false;
   searchQuery = '';
   isRequestsModalOpen = false;
-  activeRequestsTab: 'ACCEPTED' | 'PENDING' | 'REJECTED' = 'ACCEPTED';
+  
+  // 🔥 Zidna l-Status jdid f l-Active Tab 🔥
+  activeRequestsTab: 'ACCEPTED' | 'PENDING' | 'REJECTED' | 'CANCELLED' = 'ACCEPTED';
+  
   myRequests: AppointmentResponseDTO[] = [];
   searchResults: BarberSearchDto[] = [];
 
@@ -368,10 +376,11 @@ export class ClientDashboard implements OnInit, OnDestroy {
   selectedServices: number[] = [];
   userAppointments: AppointmentResponseDTO[] = [];
   isSubmitting = false;
-  // private subscriptions: Subscription[] = [];
+
   private barberSubs: Subscription[] = [];
   private userSubs: Subscription[] = [];
   private waitTimer: any;
+  
   constructor(
     private auth: AuthService,  
     private router: Router,
@@ -385,22 +394,14 @@ export class ClientDashboard implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.currentUser = this.auth.getCurrentUser();
-    console.log(this.currentUser);
-    
     this.ws.connect();
     this.loadLists();
-    // 1. Jib status mlli y-7ell l-app (ila kan dejà m-zid)
     this.loadMyStatus();
-    
-    // 2. Tsennay l-jdid real-time
-
-       this.initUserWebSocket();
-       this.startWaitTimer();
-
+    this.initUserWebSocket();
+    this.startWaitTimer();
   }
-  // 🔥 MÉTHODES DYAL MY REQUESTS 🔥
+
   loadMyRequests() {
-    // ⚠️ T2ekked blli zedti getMyRequests() f AppointmentService kima chre7t lik qbel
     this.appointmentService.getMyRequests().subscribe({
       next: (data) => {
         this.myRequests = data;
@@ -411,9 +412,9 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
 
   openRequestsModal() {
-    this.drawerOpen = false; // Sed l-menu l-kbir
-    this.isRequestsModalOpen = true; // 7el l-modal d requests
-    this.loadMyRequests(); // Jib data mn l-backend
+    this.drawerOpen = false; 
+    this.isRequestsModalOpen = true; 
+    this.loadMyRequests(); 
   }
 
   closeRequestsModal() {
@@ -421,10 +422,12 @@ export class ClientDashboard implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  setActiveRequestsTab(tab: 'ACCEPTED' | 'PENDING' | 'REJECTED') {
+  // 🔥 Update dyal l-fonction bach t9bel 4 params
+  setActiveRequestsTab(tab: 'ACCEPTED' | 'PENDING' | 'REJECTED' | 'CANCELLED') {
     this.activeRequestsTab = tab;
   }
 
+  // 🔥 L-Qaleb d l-Filtrage b startTime
   get filteredRequests() {
     return this.myRequests.filter(req => {
       if (this.activeRequestsTab === 'ACCEPTED') {
@@ -432,36 +435,40 @@ export class ClientDashboard implements OnInit, OnDestroy {
       } else if (this.activeRequestsTab === 'PENDING') {
         return req.status === 'PENDING';
       } else if (this.activeRequestsTab === 'REJECTED') {
-        return req.status === 'CANCELLED';
+        // Ila CANCELLED w ma-fihch startTime, ya3ni rfdou mn l-lowel
+        return req.status === 'CANCELLED' && !req.startTime;
+      } else if (this.activeRequestsTab === 'CANCELLED') {
+        // Ila CANCELLED w fih startTime, ya3ni kan f n-nouba w jra 3lih
+        return req.status === 'CANCELLED' && !!req.startTime;
       }
       return false;
     });
   }
 
-  getBadgeText(status: string): string {
-    switch (status) {
+  // 🔥 Bdellna getBadgeText bach t-qra l-Request kamla w t3zel
+  getBadgeText(req: AppointmentResponseDTO): string {
+    switch (req.status) {
       case 'IN_PROGRESS': return 'IN CHAIR';
       case 'WAITING': return 'ACCEPTED';
       case 'COMPLETED': return 'DONE';
       case 'PENDING': return 'PENDING';
-      case 'CANCELLED': return 'REJECTED';
-      default: return status;
+      case 'CANCELLED': 
+        return req.startTime ? 'CANCELLED' : 'REJECTED';
+      default: return req.status;
     }
   }
 
-  // 🔥 L-FIX 1: Khelina l-Actualiser oṭomatik d-koulchi mli ywsl signal 
   initUserWebSocket() {
     if (this.currentUser && this.currentUser.id) {
       const sub = this.ws.subscribeToUser(this.currentUser.id).subscribe((msg: any) => {
         console.log("WebSocket Message received for User:", msg);
         
         if (msg === 'QUEUE_UPDATED') {
-          // 1. N-tsennaw 1.5 sanya t-tsajjel f DB
           setTimeout(() => {
-            // 2. 🔥 Hna 3ad n-fiyyqou Angular bach y-rsem chacha
             this.zone.run(() => {
-              // Blast loadMyStatus(), drna refreshBarberData() bach t-jbed kolchi m3aha!
               this.refreshBarberData(); 
+              // Refresh requests history too if modal is open
+              if (this.isRequestsModalOpen) this.loadMyRequests();
             });
           }, 500); 
         }
@@ -471,27 +478,23 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
 
   isAlreadyRequested(barberId: number): boolean {
-    // Checki wach kayn chi appointment f l-array 3ndu had l-barberId u status PENDING
     return this.userAppointments.some(a => a.barberId === barberId && a.status === 'PENDING');
   }
-  // 1. Had l-function katti-9elleb f l-lista wach chi wa7ed m-accepter
+
   getAcceptedApp(): AppointmentResponseDTO | undefined {
     return this.userAppointments.find(a => 
       a.status === 'WAITING' || a.status === 'IN_PROGRESS'
     );
   }
 
-  // 2. Check wach m-accepter f chi blassa (bach n-bloquiweh f l-okhrin)
   isAcceptedAnywhere(): boolean {
     return !!this.getAcceptedApp();
   }
+
   loadMyStatus() {
     this.appointmentService.getMyActiveAppointment().subscribe(res => {
       if (this.serviceSelectOpen) return;
-      console.log("Data li jat mn DB ba3d l-message:", res);
-      // Daba res wellat Array []
       this.userAppointments = res; 
-      
       this.cdr.detectChanges();
     });
   }
@@ -500,7 +503,6 @@ export class ClientDashboard implements OnInit, OnDestroy {
     this.barberSubs.forEach(s => s.unsubscribe());
     this.userSubs.forEach(s => s.unsubscribe());
     this.ws.disconnect();
-    // 🔥 ZID HADI HNA: Tfi l-Magana
     if (this.waitTimer) {
       clearInterval(this.waitTimer);
     }
@@ -519,10 +521,9 @@ export class ClientDashboard implements OnInit, OnDestroy {
     this.barberSubs.forEach(s => s.unsubscribe());
     this.barberSubs = [];
 
-    const now = new Date().getTime(); // 👈 L-waqt d daba
+    const now = new Date().getTime();
 
     this.barberService.getMyBarbers().subscribe(list => {
-      // 🔥 L-JDID: N-sajjlou targetTime (Waqt n-nihaya l-moudbot)
       this.myBarbers = list.map(b => ({
         ...b,
         targetTime: b.estimatedWaitTime ? now + (b.estimatedWaitTime * 60000) : null
@@ -539,32 +540,23 @@ export class ClientDashboard implements OnInit, OnDestroy {
     });
   }
 
-  // 1. L-Méthode li katti-tsennet l-WebSocket
   subscribeToBarbers(list: BarberSearchDto[]) {
-    // Msa7 l-wden l-qdam bach may-t-dbblouch
     this.barberSubs.forEach(s => s.unsubscribe());
     this.barberSubs = [];
 
     list.forEach(b => {
-      // 👈 Hna katti-tsennet l-ay bedil wqe3 3nd l-coiffeur
-      // (Ila knti msmiha f ws service "subscribeToBarberStatus", khdem biha)
       const sub = this.ws.subscribeToQueue(b.id).subscribe(msg => {
         console.log("Signal wsel men 3nd l-barber " + b.id + " :", msg);
-        
-        // 🔥 Hada hwa s-ser: melli y-wsel signal, tsenna chwiya w 3iyyet l-API t-jib l-jdid
           setTimeout(() => {
-            // 🔥 Fiyyeq Angular!
             this.zone.run(() => {
               this.refreshBarberData();
             });
           }, 500);
       });
-
       this.barberSubs.push(sub);
     });
   }
 
-  // 2. L-Méthode li katti-jib l-Data jdida mn l-Backend bla ma t-rebel l-App
   refreshBarberData() {
     const now = new Date().getTime();
 
@@ -586,39 +578,32 @@ export class ClientDashboard implements OnInit, OnDestroy {
     this.loadMyStatus();
   }
   
-// 🔥 L-Magana m-gadda: Katti-Freeze l-waqt ila l-coiffeur baqi ma-wrekch 3la START
   startWaitTimer() {
     this.waitTimer = setInterval(() => {
       const now = new Date().getTime();
 
       const updateBarberTime = (b: any) => {
-        // 1. N-checkiw wach l-coiffeur m-beddi l-khdma (Khddam f chi wahed daba)
-        // ⚠️ HNA: T2ekked mn s-smiya d status li katti-wlli 3ndu melli kiy-wrek 3la START
         const isWorking = b.displayStatus === 'Working';
 
         if (b.targetTime) {
           if (isWorking) {
-            // ✅ Ila khddam (Wrek 3la START) -> nqess l-waqt 3adi
             if (b.targetTime > now) {
               b.estimatedWaitTime = Math.ceil((b.targetTime - now) / 60000);
             } else {
               b.estimatedWaitTime = 0;
             }
           }else {
-            // 🛑 Ila jales (Ma-wrekch 3la START) -> FREEZE L-WAQT!
-            // Kan-zidou 10 twani (10000 ms) f targetTime bach l-fareq y-bqa howa howa u ma-y-n9ess-ch f HTML
             b.targetTime = now + (b.estimatedWaitTime * 60000);
           } 
         }
       };
 
-      // Tbiq l-qaleb 3la ga3 l-listes
       this.myBarbers.forEach(updateBarberTime);
       this.myFavorites.forEach(updateBarberTime);
 
       this.cdr.detectChanges();
       
-    }, 10000); // katti-t-executa kola 10 twani
+    }, 10000); 
   }
 
   getStatusColor(status: string) {
@@ -631,7 +616,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
   getStatusTextColor(status: string) {
     if (status === 'OPEN' || status === 'Working') return 'text-green-500';
     if (status === 'ON_BREAK') return 'text-yellow-500';  
-    return 'text-neutral-500'; // CLOSED
+    return 'text-neutral-500'; 
   }
 
   toggleFavorite(barberId: number) {
@@ -640,9 +625,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
     });
   }
 
-  // 🔥 L-FIX 2: N-blokiwh mn l-Messa7 ila kan f n-nouba
   removeBarber(barberId: number) {
-    // Check wach l-klyan f n-nouba dyal had l-7llaq awla msifet demande
     const isInQueue = this.userAppointments.some(a => a.barberId === barberId);
 
     if (isInQueue) {
@@ -657,7 +640,6 @@ export class ClientDashboard implements OnInit, OnDestroy {
     }
   }
 
-  // --- Search functionality ---
   openSearchModal() {
     this.searchModalOpen = true;
     this.drawerOpen = false;
@@ -679,31 +661,27 @@ export class ClientDashboard implements OnInit, OnDestroy {
     this.barberService.addBarber(id).subscribe(() => {
       this.searchModalOpen = false;
       this.loadLists();
-      this.activeTab = 'all'; // switch to all tab to show it
+      this.activeTab = 'all'; 
     });
   }
 
-  // --- Appointment Request ---
   openServiceSelection(barberId: number) {
     this.targetBarberId = barberId;
     this.selectedServices = [];
     this.barberServices = [];
-    this.displayServices = []; // n-khewiwha f l-lowel
+    this.displayServices = []; 
 
-    // 1. Jib l-khedmat l-3adiyin dyal l-barber
     this.catalogService.getBarberServices(barberId).subscribe(res => {
       this.barberServices = res;
       
-      // 2. Jib l-awqat l-mkhasssa dyal had l-klyan
       this.barberService.getMyCustomTimesForBarber(barberId).subscribe({
         next: (customData: any[]) => {
-          // 3. Khlet l-3adi m3a l-mkhasses
           this.displayServices = this.barberServices.map(defaultSrv => {
             const custom = customData.find(c => c.serviceId === defaultSrv.id);
             if (custom && custom.customDuration) {
               return { 
                 ...defaultSrv, 
-                duration: custom.customDuration + ' MIN', // Zidna MIN bach t-bqa m-qadda
+                duration: custom.customDuration + ' MIN', 
                 isCustom: true 
               };
             }
@@ -714,7 +692,6 @@ export class ClientDashboard implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         },
         error: () => {
-          // Ila wqe3 mochkil wla makanch waqt mkhasses, khelli l-3adi
           this.displayServices = this.barberServices.map(s => ({...s, isCustom: false}));
           this.serviceSelectOpen = true;   
           this.cdr.detectChanges();
@@ -747,23 +724,18 @@ export class ClientDashboard implements OnInit, OnDestroy {
 
     this.appointmentService.createAppointment(payload).subscribe({
       next: (res) => {
-        console.log(payload);
-        
-        // 🔥 زيدها مباشرة فـ state
         this.userAppointments.push({
           ...res,
           status: 'PENDING'
         });
-        console.log(payload);
         
         this.serviceSelectOpen = false;
         this.isSubmitting = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.isSubmitting = false; // 🔥 Rje3ha false 7ta ila wqe3 mouchkil
+        this.isSubmitting = false; 
 
-        // N-chedou l-Error mn l-Backend
         if (err.error === 'ALREADY_PENDING' || err.error?.message === 'ALREADY_PENDING' || err.message?.includes('ALREADY_PENDING')) {
            alert("⚠️ Dejà msifet demande l had l-coiffeur!");
            this.serviceSelectOpen = false;
@@ -775,14 +747,11 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
   
   cancelMyRequest(barberId: number) {
-    // 1. Jbed l-appointment PENDING li m3a had l-barber men l-lista dyalna
     const app = this.userAppointments.find(a => a.barberId === barberId && a.status === 'PENDING');
     
     if (app) {
-      // 2. Nadi l-service (ista3mel l-methode li 3ndek dejà f l-service)
       this.appointmentService.rejectAppointment(app.id).subscribe({
         next: () => {
-          // Refresh bach t-t-7iyed l-box d Pending
           this.loadMyStatus();
         },
         error: (err) => console.error("Error canceling", err)
