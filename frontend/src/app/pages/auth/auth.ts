@@ -9,6 +9,14 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [ReactiveFormsModule, CommonModule],
   template: `
+    <style>
+      .submitting {
+        cursor: not-allowed;
+      }
+      .submitting * {
+        pointer-events: none;
+      }
+    </style>
     <div class="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <!-- Decorative background blur -->
       <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-yellow-500/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -63,7 +71,7 @@ import { CommonModule } from '@angular/common';
         </div>
 
         <!-- Form -->
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" [class.submitting]="loading">
           
           <!-- Register Fields -->
           <ng-container *ngIf="!isLogin">
