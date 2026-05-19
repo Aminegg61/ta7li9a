@@ -19,6 +19,8 @@ import com.ajemi.barber.Ta7li9_app.entity.AppointmentItem;
 import com.ajemi.barber.Ta7li9_app.entity.AppointmentStatus;
 import com.ajemi.barber.Ta7li9_app.entity.ServiceEntity;
 import com.ajemi.barber.Ta7li9_app.entity.User;
+import com.ajemi.barber.Ta7li9_app.entity.FollowedBarber; // 🔥 Zidna l-Import
+import com.ajemi.barber.Ta7li9_app.repository.FollowedRepository; // 🔥 Zidna l-Import
 import com.ajemi.barber.Ta7li9_app.repository.AppointmentItemRepository;
 import com.ajemi.barber.Ta7li9_app.repository.AppointmentRepository;
 import com.ajemi.barber.Ta7li9_app.repository.ServiceRepository;
@@ -37,6 +39,8 @@ public class AppointmentService {
     private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private AppointmentItemRepository appointmentItemRepository;
+    @Autowired
+    private FollowedRepository followedRepository; // 🔥 Zidna l-Repository
 
     public List<User> searchClient(Long coiffeurId, String query) {
         // Stage 1: Qelleb f l-History dyalk (Prefix Search)
@@ -69,9 +73,7 @@ public class AppointmentService {
         Long currentUserId = currentUser.getId();
         boolean isCoiffeur = currentUser.isCoiffeur();
         
-        // 1. 🔥 N-Qeflou 3la l-klyan bach may-sifetch 2 demandes f nefs l-millisecond!
-        User lockedUser = userRepository.findByIdWithLock(currentUserId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        // 1. Check Duplicate l l-Client (Zid PENDING l l-lista dyal l-verif)
         if (!isCoiffeur) {
             boolean alreadyInQueue = appointmentRepository.existsByClientIdAndStatusIn(
                 currentUserId, 
@@ -81,15 +83,6 @@ public class AppointmentService {
                 throw new RuntimeException("Rak dejà f n-nouba walla katti-tsenna acceptation!");
             }
         }
-                    // 🔥 ZID HADI: N-checkiw wach dejà msifet demande w baqaa PENDING
-            boolean alreadyPending = appointmentRepository.existsByClientIdAndCoiffeurIdAndStatus(
-                currentUserId,
-                dto.getBarberId(),
-                AppointmentStatus.PENDING
-            );
-            if (alreadyPending) {
-                throw new RuntimeException("ALREADY_PENDING"); // Sift error bach l-front y-fhem
-            }
 
         AppointmentEntity appointment = new AppointmentEntity();
         User coiffeur;
@@ -98,44 +91,23 @@ public class AppointmentService {
 
         // --- Ta7did Roles ---
         if (isCoiffeur) { // Coiffeur Manual Add
-            
-            // 1. 🔥 Hna sta3melnah: L-7ellaq hwa nfso lockedUser li dakhil daba
-            coiffeur = lockedUser; 
-            
-            if (coiffeur.getCurrentStatus() != null) {
-            String status = coiffeur.getCurrentStatus().name(); // awla coiffeur.getCurrentStatus() ila kant String
-            if ("OFFLINE".equals(status)) {
-            throw new RuntimeException("BARBER_OFFLINE");
-                            }
-            }
+            coiffeur = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Coiffeur not found"));
             if (dto.getClientId() == null && (dto.getManualName() == null || dto.getManualName().trim().isEmpty())) {
                 throw new IllegalArgumentException("Ma ymkench t-zid rendez-vous bla klyan w bla smiyat Guest!");
             }
             if (dto.getClientId() != null) {
-                // 🔥 ZIDNA L-7ARIS HNA: N-checkiw wach had l-klyan li 3zel l-coiffeur dejà chad n-nouba!
-                        boolean isBusy = appointmentRepository.existsByClientIdAndStatusIn(
-                    dto.getClientId(), 
-                    List.of(AppointmentStatus.WAITING, AppointmentStatus.IN_PROGRESS)
-                );
-                if (isBusy) {
-                    throw new RuntimeException("CLIENT_BUSY"); // Sift l-Error bach y-tchedd f l-front
-                }
-                                
-                // 2. 🔥 L-QALEB J-JDID: N-lghiw (Cancel) ga3 d-demandes PENDING li msifet l-klyan
-                List<AppointmentEntity> pendingRequests = appointmentRepository.findByClientIdAndStatus(
-                    dto.getClientId(), 
-                    AppointmentStatus.PENDING
-                );
-
-                for (AppointmentEntity pendingApp : pendingRequests) {
-                    pendingApp.setStatus(AppointmentStatus.CANCELLED); 
-                    appointmentRepository.save(pendingApp);
-                    messagingTemplate.convertAndSend("/topic/queue/" + pendingApp.getCoiffeur().getId(), "UPDATE_QUEUE");
-                }
+                client = userRepository.findById(dto.getClientId()).orElse(null);
                 
-                // Hada kiy-bqa hka 7it l-7ellaq kiy-jbed klyan akhor (ma-m-connectich)
-                client = userRepository.findById(dto.getClientId()).orElse(null); 
-                
+                // 🔥 L-FIX HNA: N-zidou l-Barber l-lista dyal "My Barbers" dyal l-Client oṭomatik
+                if (client != null) {
+                    boolean alreadyFollowed = followedRepository.existsByClientAndBarber(client, coiffeur);
+                    if (!alreadyFollowed) {
+                        FollowedBarber follow = new FollowedBarber();
+                        follow.setClient(client);
+                        follow.setBarber(coiffeur);
+                        followedRepository.save(follow);
+                    }
+                }
             } else {
                 manualName = dto.getManualName();
             }
@@ -144,9 +116,7 @@ public class AppointmentService {
         } 
         else { // Client Send Demand
             coiffeur = userRepository.findById(dto.getBarberId()).orElseThrow(() -> new RuntimeException("Coiffeur not found"));
-            
-            // 2. 🔥 W Hna sta3melnah 7ta hwa: L-klyan hwa nfso lockedUser li dakhil daba
-            client = lockedUser; 
+            client = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Client context not found"));
             
             // Demand kiy-koun PENDING u weqt khawi
             appointment.setStatus(AppointmentStatus.PENDING);
@@ -166,7 +136,7 @@ public class AppointmentService {
 
             // 👇 L-QALEB J-JDID D-HISTORY 👇
             if (client != null) {
-                            // ✅ Daba ghadi y-nqqez ga3 dok li fihom null, u y-jib akher wa7ed m-sajjel fih l-weqt s-s7i7!
+// ✅ Daba ghadi y-nqqez ga3 dok li fihom null, u y-jib akher wa7ed m-sajjel fih l-weqt s-s7i7!
                 java.util.Optional<AppointmentItem> lastTime = appointmentItemRepository
                     .findFirstByAppointmentClientIdAndServiceIdAndStatusAndActualDurationIsNotNullOrderByEndTimeDesc(
                         client.getId(), 
@@ -251,7 +221,7 @@ public class AppointmentService {
         app.setEndTime(startTime.plusMinutes(totalDuration)); // ✅ Hna targetTime ghadi y-koun m-gadd!
     }
 
-    @Transactional
+@Transactional
     public AppointmentResponseDTO acceptAppointment(Long appointmentId) {
         AppointmentEntity app = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Demand ma-lqinahch"));
