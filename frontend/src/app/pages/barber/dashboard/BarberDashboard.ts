@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs'; // 🔥 Zidna Subscription hna
+import { Subscription } from 'rxjs'; 
 import { BarberService } from '../../../services/barber.service';
 import { AppointmentService } from '../../../services/appointment.service';
 import { ServiceCatalogService } from '../../../services/service-catalog.service';
@@ -259,7 +259,7 @@ import { WebsocketService } from '../../../services/websocket.service';
                 <label *ngFor="let srv of displayServices" 
                        class="flex items-center gap-3 bg-neutral-950 border border-neutral-800 p-3 rounded-xl cursor-pointer hover:border-neutral-600 transition-all"
                        [ngClass]="{'border-yellow-500 bg-yellow-500/5': selectedServiceIds.includes(srv.id)}">
-                  <input type="checkbox" [value]="srv.id" (change)="toggleService(srv.id)" class="accent-yellow-500 w-4 h-4">
+                  <input type="checkbox" [value]="srv.id" [checked]="selectedServiceIds.includes(srv.id)" (change)="toggleService(srv.id)" class="accent-yellow-500 w-4 h-4">
                   <div class="flex-1">
                     <p class="font-bold text-sm">{{ srv.name }}</p>
                     <p class="text-xs text-neutral-500 flex items-center gap-2">
@@ -322,7 +322,7 @@ import { WebsocketService } from '../../../services/websocket.service';
     </div>
   `
 })
-export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDestroy hna
+export class BarberDashboard implements OnInit, OnDestroy {
   currentStatus: 'ACTIVE' | 'FULL' | 'OFFLINE'  = 'OFFLINE';
   isPaused: boolean = false;
   statusErrorMessage: string = '';
@@ -349,7 +349,6 @@ export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDest
   newServiceDuration: number | null = null;
   pendingRequests: AppointmentResponseDTO[] = [];
 
-  // 🔥 L-Qaleb dyal l-Khit (Memory Leak Fix)
   private wsSubscription: Subscription | null = null;
 
   constructor(
@@ -373,7 +372,6 @@ export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDest
 
   initWebSocketListener() {
     if (this.currentUser && this.currentUser.id) {
-      // 🔥 K-n-cheddou l-khit f wa7ed l-variable
       this.wsSubscription = this.ws.subscribeToQueue(this.currentUser.id).subscribe(message => {
         console.log("Signal Received:", message);
         setTimeout(() => {
@@ -385,7 +383,6 @@ export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDest
   }
 
   ngOnDestroy() {
-    // 🔥 Mli kiy-tsedd l-Dashboard, k-n-qet3ou l-khit awwlan
     if (this.wsSubscription) {
       this.wsSubscription.unsubscribe();
       console.log('🧹 Khit d-WebSocket t-qte3 (No Memory Leak)');
@@ -526,10 +523,12 @@ export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDest
     this.resetServiceDurations();
   }
 
+  // 🔥 L-FIX 2: Khewi selectedServiceIds mli n-bedlou l-klyan
   onSearchClients(val: string) {
     if (this.manualClientId) {
       this.manualClientId = null; 
       this.resetServiceDurations();
+      this.selectedServiceIds = []; // 👈 Zidna hadi
     }
     if (val.length > 2) {
       this.appointmentService.searchClients(val).subscribe(res => {
@@ -540,12 +539,15 @@ export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDest
     }
   }
 
+  // 🔥 L-FIX 2: Khewi selectedServiceIds mli n-khedmou b-Guest
   onGuestInput() {
     this.manualClientId = null;
     this.searchResults = [];
     this.resetServiceDurations(); 
+    this.selectedServiceIds = []; // 👈 Zidna hadi
   }
 
+  // 🔥 L-FIX 2: Khewi selectedServiceIds mli n-selectiw Klyan jdid
   selectUser(user: User) {
     const isAlreadyInQueue = 
       this.activeQueue.some(apt => apt.clientId === user.id) || 
@@ -562,6 +564,7 @@ export class BarberDashboard implements OnInit, OnDestroy { // 🔥 Zidna OnDest
     this.manualName = '';
     this.searchQuery = user.firstName + ' ' + user.lastName;
     this.searchResults = [];
+    this.selectedServiceIds = []; // 👈 Zidna hadi
 
     this.catalogService.getClientCustomServices(user.id).subscribe({
       next: (customData: any[]) => {
