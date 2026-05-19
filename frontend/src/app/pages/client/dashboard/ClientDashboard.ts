@@ -17,7 +17,6 @@ import { AuthService } from '../../../services/auth';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-neutral-950 text-white font-sans">
-      <!-- HEADER -->
       <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <button (click)="drawerOpen = true" class="p-2 -ml-2 text-neutral-400 hover:text-white transition-colors">
@@ -38,7 +37,6 @@ import { AuthService } from '../../../services/auth';
         </button>
       </header>
 
-      <!-- DRAWER MODAL -->
       <div *ngIf="drawerOpen" class="fixed inset-0 z-50 flex">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="drawerOpen = false"></div>
         <div class="relative w-80 bg-neutral-900 h-full border-r border-neutral-800 shadow-2xl flex flex-col transform transition-transform">
@@ -46,12 +44,11 @@ import { AuthService } from '../../../services/auth';
             <h2 class="font-black text-lg uppercase tracking-tight italic">Menu</h2>
             <button (click)="drawerOpen = false" class="text-neutral-500 hover:text-white">✕</button>
           </div>
-          <div class="p-4 flex-1 space-y-2"> <!-- Zedt space-y-2 hna bach y-tferqou -->
+          <div class="p-4 flex-1 space-y-2">
             <button (click)="openSearchModal()" class="w-full text-left px-4 py-3 bg-neutral-950 hover:bg-neutral-800 rounded-xl font-bold transition-all text-sm flex items-center gap-3">
               <span>🔍</span> Search All Barbers
             </button>
             
-            <!-- 🔥 BOUTON JDIDA DYAL REQUESTS 🔥 -->
             <button (click)="openRequestsModal()" class="w-full text-left px-4 py-3 bg-neutral-950 hover:bg-neutral-800 rounded-xl font-bold transition-all text-sm flex items-center gap-3 border border-neutral-800/50">
               <span>📄</span> My Demand History
             </button>
@@ -61,7 +58,6 @@ import { AuthService } from '../../../services/auth';
 
       <main class="max-w-xl mx-auto p-4 space-y-6">
         
-        <!-- Tab Switcher -->
         <div class="flex bg-neutral-900 p-1 rounded-2xl relative">
           <div class="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-neutral-800 rounded-xl transition-all duration-300"
                [class.left-1]="activeTab === 'favorites'"
@@ -81,7 +77,6 @@ import { AuthService } from '../../../services/auth';
           </button>
         </div>
 
-        <!-- Barber Cards -->
         <div class="space-y-4">
           <div *ngIf="displayBarbers.length === 0" class="text-center py-12 text-neutral-500 font-bold text-sm bg-neutral-900 rounded-[2.5rem] border border-neutral-800">
             No barbers found in this list. <br/>
@@ -90,7 +85,6 @@ import { AuthService } from '../../../services/auth';
 
           <div *ngFor="let barber of displayBarbers" class="bg-neutral-900 border border-neutral-800 rounded-[2rem] overflow-hidden relative group">
             
-            <!-- Context Menu (Remove / Fav) -->
             <div class="absolute top-4 right-4 flex items-center gap-2">
               <button (click)="toggleFavorite(barber.id)" class="p-2 rounded-full bg-neutral-950 border border-neutral-800 transition-all hover:bg-neutral-800">
                 <span *ngIf="barber.favorite" class="text-yellow-500">★</span>
@@ -103,12 +97,10 @@ import { AuthService } from '../../../services/auth';
 
             <div class="p-6">
               <div class="flex items-center gap-4 mb-6">
-                <!-- Avatar -->
                 <div class="relative">
                   <div class="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center border border-neutral-700 font-black text-xl text-neutral-400">
                     {{ barber.firstName.charAt(0) }}{{ barber.lastName.charAt(0) }}
                   </div>
-                  <!-- Status Dot -->
                   <div class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-neutral-900"
                        [ngClass]="getStatusColor(barber.currentStatus)"></div>
                 </div>
@@ -121,8 +113,7 @@ import { AuthService } from '../../../services/auth';
                 </div>
               </div>
 
-              <!-- Stats -->
-<div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="grid grid-cols-2 gap-4 mb-6">
                 
                 <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800 flex flex-col justify-center">
                   <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">
@@ -138,22 +129,18 @@ import { AuthService } from '../../../services/auth';
 
                   <div *ngIf="barber.inQueue">
                     
-                    <!-- 1. Ila kan gals fel koursi kiy-7ssen (IN_PROGRESS) -->
                     <p *ngIf="getAcceptedApp()?.barberId === barber.id && getAcceptedApp()?.status === 'IN_PROGRESS'" class="font-black text-xl text-yellow-500 animate-pulse">
                       NOW
                       <span class="text-[10px] text-yellow-500/70 ml-1 uppercase tracking-widest"> In The Chair...</span>
                     </p>
 
-                    <!-- 2. Ila kan yalah kiy-tsenna (WAITING) -->
                     <ng-container *ngIf="!(getAcceptedApp()?.barberId === barber.id && getAcceptedApp()?.status === 'IN_PROGRESS')">
                       
-                      <!-- Hwa li taba3 (Position 0) -->
                       <p *ngIf="barber.queuePosition === 0" class="font-black text-xl text-green-500 animate-pulse">
                         NEXT
                         <span class="text-[10px] text-green-500/70 ml-1 uppercase tracking-widest">get ready</span>
                       </p>
                       
-                      <!-- Baqi b3id (Position > 0) -->
                       <p *ngIf="barber.queuePosition > 0" class="font-black text-xl text-yellow-500">
                         {{ barber.queuePosition }}
                         <span class="text-[10px] text-neutral-500 ml-1 uppercase tracking-widest">ahead of you</span>
@@ -167,7 +154,6 @@ import { AuthService } from '../../../services/auth';
                 <div class="bg-neutral-950 rounded-2xl p-4 border border-neutral-800 flex flex-col justify-center">
                   <p class="text-[10px] text-neutral-500 font-black uppercase tracking-widest mb-1">Est. Wait</p>
                   
-                  <!-- حيدنا الـ span ودرنا الـ الميثود ديالنا -->
                   <p class="font-black text-xl text-yellow-500">
                     {{ formatWaitTime(barber.estimatedWaitTime) }}
                   </p>
@@ -225,14 +211,12 @@ import { AuthService } from '../../../services/auth';
           </div>
             </div>
 
-            <!-- Accent line -->
             <div class="absolute bottom-0 inset-x-0 h-1.5" [ngClass]="getStatusColor(barber.currentStatus)"></div>
           </div>
         </div>
 
       </main>
 
-      <!-- SEARCH MODAL -->
       <div *ngIf="searchModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="searchModalOpen = false"></div>
         <div class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-[2rem] p-8 shadow-2xl flex flex-col max-h-[90vh]">
@@ -263,7 +247,6 @@ import { AuthService } from '../../../services/auth';
         </div>
       </div>
 
-      <!-- SERVICE SELECTION MODAL -->
       <div *ngIf="serviceSelectOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="serviceSelectOpen = false"></div>
         <div class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-[2rem] p-8 shadow-2xl flex flex-col max-h-[90vh]">
@@ -276,7 +259,6 @@ import { AuthService } from '../../../services/auth';
               Loading services or barber has no services set.
             </div>
 
-            <!-- 🔥 L-FIX 1: Bdelna barberServices b displayServices -->
             <label *ngFor="let srv of displayServices" 
                    class="flex items-center gap-3 bg-neutral-950 border border-neutral-800 p-4 rounded-2xl cursor-pointer hover:border-neutral-600 transition-all"
                    [ngClass]="{'border-yellow-500 bg-yellow-500/5': selectedServices.includes(srv.id)}">
@@ -286,7 +268,6 @@ import { AuthService } from '../../../services/auth';
                 <div class="flex items-center gap-2 mt-1">
                   <span class="text-[10px] font-black uppercase text-neutral-500">{{ srv.duration }}</span>
                   
-                  <!-- 🔥 L-FIX 2: Zidna l-blaka dyal CUSTOM hna -->
                   <span *ngIf="srv.isCustom" class="text-[8px] font-black uppercase bg-green-500/20 text-green-500 px-1.5 py-0.5 rounded">CUSTOM</span>
                   
                 </div>
@@ -305,8 +286,7 @@ import { AuthService } from '../../../services/auth';
           </div>
         </div>
       </div>
-    <!-- 🔥 MY REQUESTS MODAL 🔥 -->
-      <div *ngIf="isRequestsModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div *ngIf="isRequestsModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" (click)="closeRequestsModal()"></div>
         <div class="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]">
           
@@ -315,7 +295,6 @@ import { AuthService } from '../../../services/auth';
             <button (click)="closeRequestsModal()" class="p-2 text-neutral-500 hover:text-white rounded-full bg-neutral-950 border border-neutral-800 transition-colors">✕</button>
           </div>
 
-          <!-- TABS (Tailwind Style) -->
           <div class="flex bg-neutral-950 p-1 rounded-xl mb-4 border border-neutral-800 relative">
             <button (click)="setActiveRequestsTab('ACCEPTED')" 
                     class="flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300"
@@ -334,7 +313,6 @@ import { AuthService } from '../../../services/auth';
             </button>
           </div>
 
-          <!-- LISTA DYAL REQUESTS -->
           <div class="overflow-y-auto flex-1 pr-2 -mr-2 space-y-3">
             <div *ngIf="filteredRequests.length === 0" class="text-center p-6 text-neutral-500 font-bold text-xs mt-4 bg-neutral-950/50 rounded-2xl border border-neutral-800/50 dashed">
               No requests found in this section.
@@ -344,7 +322,6 @@ import { AuthService } from '../../../services/auth';
               <div>
                 <h4 class="font-black text-sm uppercase text-white">{{ req.firstName || 'Barber' }}</h4>
                 <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest mt-1">
-                  <!-- Ila 3ndu list d services, afichihom, sinon dir default text -->
                   <ng-container *ngIf="req.serviceNames && req.serviceNames.length > 0; else noSrv">
                     {{ req.serviceNames.join(' + ') }}
                   </ng-container>
@@ -352,7 +329,6 @@ import { AuthService } from '../../../services/auth';
                 </p>
               </div>
               
-              <!-- THE BADGE -->
               <span class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest"
                     [ngClass]="{
                       'bg-green-500/10 text-green-500 border border-green-500/20': activeRequestsTab === 'ACCEPTED',
@@ -472,6 +448,8 @@ export class ClientDashboard implements OnInit, OnDestroy {
       default: return status;
     }
   }
+
+  // 🔥 L-FIX 1: Khelina l-Actualiser oṭomatik d-koulchi mli ywsl signal 
   initUserWebSocket() {
     if (this.currentUser && this.currentUser.id) {
       const sub = this.ws.subscribeToUser(this.currentUser.id).subscribe((msg: any) => {
@@ -482,7 +460,8 @@ export class ClientDashboard implements OnInit, OnDestroy {
           setTimeout(() => {
             // 2. 🔥 Hna 3ad n-fiyyqou Angular bach y-rsem chacha
             this.zone.run(() => {
-              this.loadMyStatus();
+              // Blast loadMyStatus(), drna refreshBarberData() bach t-jbed kolchi m3aha!
+              this.refreshBarberData(); 
             });
           }, 500); 
         }
@@ -490,6 +469,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
       this.userSubs.push(sub);
     }
   }
+
   isAlreadyRequested(barberId: number): boolean {
     // Checki wach kayn chi appointment f l-array 3ndu had l-barberId u status PENDING
     return this.userAppointments.some(a => a.barberId === barberId && a.status === 'PENDING');
@@ -559,26 +539,6 @@ export class ClientDashboard implements OnInit, OnDestroy {
     });
   }
 
-  // subscribeToBarbers(list: BarberSearchDto[]) {
-  //   this.barberSubs.forEach(s => s.unsubscribe());
-  //   this.barberSubs = [];
-
-  //   list.forEach(b => {
-  //     const sub = this.ws.subscribeToBarberStatus(b.id).subscribe(newStatus => {
-  //       const update = (arr: BarberSearchDto[]) => {
-  //         const found = arr.find(x => x.id === b.id);
-  //         if (found) found.currentStatus = newStatus as any;
-  //       };
-
-  //       update(this.myBarbers);
-  //       update(this.myFavorites);
-
-  //       this.cdr.detectChanges();
-  //     });
-
-  //     this.barberSubs.push(sub);
-  //   });
-  // }
   // 1. L-Méthode li katti-tsennet l-WebSocket
   subscribeToBarbers(list: BarberSearchDto[]) {
     // Msa7 l-wden l-qdam bach may-t-dbblouch
@@ -668,11 +628,6 @@ export class ClientDashboard implements OnInit, OnDestroy {
     return 'bg-neutral-600';
   }
 
-  // getStatusTextColor(status: string) {
-  //   if (status === 'ACTIVE') return 'text-green-500';
-  //   if (status === 'FULL') return 'text-orange-500';
-  //   return 'text-neutral-500';
-  // }
   getStatusTextColor(status: string) {
     if (status === 'OPEN' || status === 'Working') return 'text-green-500';
     if (status === 'ON_BREAK') return 'text-yellow-500';  
@@ -685,10 +640,21 @@ export class ClientDashboard implements OnInit, OnDestroy {
     });
   }
 
+  // 🔥 L-FIX 2: N-blokiwh mn l-Messa7 ila kan f n-nouba
   removeBarber(barberId: number) {
-    this.barberService.removeBarber(barberId).subscribe(() => {
-      this.loadLists();
-    });
+    // Check wach l-klyan f n-nouba dyal had l-7llaq awla msifet demande
+    const isInQueue = this.userAppointments.some(a => a.barberId === barberId);
+
+    if (isInQueue) {
+      alert("⚠️ Ma-tqderch t-msa7 had l-7llaq mn l-lista! Rak f n-nouba dyalo awla msifet lih demande.");
+      return;
+    }
+
+    if (confirm("Wach mt2kked bghiti t-7iyed had l-7llaq mn l-lista dyalek?")) {
+      this.barberService.removeBarber(barberId).subscribe(() => {
+        this.loadLists();
+      });
+    }
   }
 
   // --- Search functionality ---
@@ -718,7 +684,7 @@ export class ClientDashboard implements OnInit, OnDestroy {
   }
 
   // --- Appointment Request ---
-openServiceSelection(barberId: number) {
+  openServiceSelection(barberId: number) {
     this.targetBarberId = barberId;
     this.selectedServices = [];
     this.barberServices = [];
@@ -765,6 +731,7 @@ openServiceSelection(barberId: number) {
       this.selectedServices.push(id);
     }
   }
+
   closeModal() {
     this.serviceSelectOpen = false;
     this.cdr.detectChanges();
@@ -782,17 +749,16 @@ openServiceSelection(barberId: number) {
       next: (res) => {
         console.log(payload);
         
-              // 🔥 زيدها مباشرة فـ state
-      this.userAppointments.push({
-        ...res,
-        status: 'PENDING'
-      });
+        // 🔥 زيدها مباشرة فـ state
+        this.userAppointments.push({
+          ...res,
+          status: 'PENDING'
+        });
         console.log(payload);
         
         this.serviceSelectOpen = false;
-          this.isSubmitting = false;
-         this.cdr.detectChanges();
-        //this.loadLists();
+        this.isSubmitting = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.isSubmitting = false; // 🔥 Rje3ha false 7ta ila wqe3 mouchkil
@@ -807,6 +773,7 @@ openServiceSelection(barberId: number) {
       }
     });
   }
+  
   cancelMyRequest(barberId: number) {
     // 1. Jbed l-appointment PENDING li m3a had l-barber men l-lista dyalna
     const app = this.userAppointments.find(a => a.barberId === barberId && a.status === 'PENDING');
@@ -822,6 +789,7 @@ openServiceSelection(barberId: number) {
       });
     }
   }
+
   formatWaitTime(minutes: number | null): string {
     if (minutes === null || minutes === undefined) return "0min";
     if (minutes < 60) return minutes + "min";
